@@ -4,14 +4,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function CryptoCardSkeleton() {
   return (
     <div className="flex items-center gap-4" data-testid="skeleton-crypto-card">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="flex-1 space-y-2">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-6 w-24" />
+      <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-20 font-mono" />
         </div>
         <div className="flex items-center justify-between">
-          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-12" />
           <Skeleton className="h-4 w-16" />
         </div>
       </div>
@@ -64,6 +64,23 @@ export function SignalCardSkeleton() {
   );
 }
 
+export function CryptoDetailSignalSkeleton() {
+  return (
+    <div className="border rounded-lg p-4" data-testid="skeleton-crypto-detail-signal">
+      <div className="flex items-center justify-between mb-2">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <Skeleton className="h-4 w-full mb-1" />
+      <Skeleton className="h-4 w-4/5 mb-2" />
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+    </div>
+  );
+}
+
 export function StatCardSkeleton() {
   return (
     <Card data-testid="skeleton-stat-card">
@@ -83,23 +100,24 @@ export function AlertCardSkeleton() {
   return (
     <Card data-testid="skeleton-alert-card">
       <CardContent className="p-6">
-        <div className="flex items-start gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <div className="flex-1 space-y-3">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-5 w-20" />
             </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
-            </div>
-            <div className="flex items-center gap-3">
+            <Skeleton className="h-4 w-48" />
+            <div className="flex items-center gap-4">
               <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-28" />
             </div>
           </div>
-          <Skeleton className="h-8 w-8" />
+          {/* Toggle and Delete buttons */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-9" />
+            <Skeleton className="h-9 w-9" />
+          </div>
         </div>
       </CardContent>
     </Card>

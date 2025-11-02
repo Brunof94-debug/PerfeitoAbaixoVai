@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChartSkeleton, TechnicalIndicatorsSkeleton, SignalCardSkeleton } from "@/components/loading-skeletons";
+import { ChartSkeleton, TechnicalIndicatorsSkeleton, CryptoDetailSignalSkeleton } from "@/components/loading-skeletons";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
@@ -84,7 +84,7 @@ export default function CryptoDetail() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <SignalCardSkeleton key={i} />
+                <CryptoDetailSignalSkeleton key={i} />
               ))}
             </CardContent>
           </Card>
@@ -251,9 +251,9 @@ export default function CryptoDetail() {
         </CardHeader>
         <CardContent>
           {signalsLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-20 w-full" />
+                <CryptoDetailSignalSkeleton key={i} />
               ))}
             </div>
           ) : signals && signals.length > 0 ? (
