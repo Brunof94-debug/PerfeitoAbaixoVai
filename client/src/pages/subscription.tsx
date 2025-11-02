@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { Check, Zap } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Subscription() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   const tiers = [
     {
@@ -66,6 +71,46 @@ export default function Subscription() {
 
   const currentTier = user?.subscriptionTier || 'basic';
 
+  const handleUpgrade = async (tier: string) => {
+    setIsUpgrading(true);
+    try {
+      const res = await apiRequest("POST", "/api/subscription/create-checkout", { tier });
+      const data = await res.json();
+      
+      if (data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
+        variant: "destructive",
+      });
+      setIsUpgrading(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setIsUpgrading(true);
+    try {
+      const res = await apiRequest("POST", "/api/subscription/create-portal");
+      const data = await res.json();
+      
+      if (data.url) {
+        // Redirect to Stripe Billing Portal
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open billing portal. Please try again.",
+        variant: "destructive",
+      });
+      setIsUpgrading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
@@ -100,8 +145,13 @@ export default function Subscription() {
               </p>
             </div>
             {currentTier !== 'basic' && (
-              <Button variant="outline" data-testid="button-manage-billing">
-                Manage Billing
+              <Button 
+                variant="outline" 
+                onClick={handleManageBilling}
+                disabled={isUpgrading}
+                data-testid="button-manage-billing"
+              >
+                {isUpgrading ? "Opening..." : "Manage Billing"}
               </Button>
             )}
           </div>
@@ -151,12 +201,23 @@ export default function Subscription() {
                     Current Plan
                   </Button>
                 ) : isUpgrade ? (
-                  <Button className="w-full" variant={tier.popular ? "default" : "outline"} data-testid={`button-upgrade-${tier.id}`}>
-                    Upgrade to {tier.name}
+                  <Button 
+                    className="w-full" 
+                    variant={tier.popular ? "default" : "outline"}
+                    onClick={() => handleUpgrade(tier.id)}
+                    disabled={isUpgrading}
+                    data-testid={`button-upgrade-${tier.id}`}
+                  >
+                    {isUpgrading ? "Loading..." : `Upgrade to ${tier.name}`}
                   </Button>
                 ) : (
-                  <Button className="w-full" variant="outline" data-testid={`button-downgrade-${tier.id}`}>
-                    Downgrade to {tier.name}
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    disabled
+                    data-testid={`button-downgrade-${tier.id}`}
+                  >
+                    Contact Support to Downgrade
                   </Button>
                 )}
               </CardContent>

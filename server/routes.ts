@@ -17,6 +17,7 @@ import {
 } from "./cache";
 import { registerAlertClient, startAlertMonitor } from "./alert-monitor";
 import { runBacktest } from "./backtesting-engine";
+import { stripe, createCheckoutSession, createBillingPortalSession, getCustomerByUserId } from "./stripe";
 
 // Initialize OpenAI client (using Replit AI Integrations)
 const openai = new OpenAI({
@@ -498,6 +499,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error('Error creating backtest:', error);
       res.status(500).json({ error: 'Failed to create backtest' });
+    }
+  });
+
+  // ==================== STRIPE ENDPOINTS ====================
+  
+  // Create Stripe checkout session for subscription upgrade
+  app.post("/api/subscription/create-checkout", async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+      const { tier } = req.body;
+      
+      if (!['pro', 'expert'].includes(tier)) {
+        return res.status(400).json({ error: 'Invalid tier' });
+      }
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const successUrl = `${baseUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${baseUrl}/subscription`;
+      
+      const session = await createCheckoutSession(
+        req.user.id,
+        req.user.email,
+        tier as 'pro' | 'expert',
+        successUrl,
+        cancelUrl
+      );
+      
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+  
+  // Create billing portal session for managing subscription
+  app.post("/api/subscription/create-portal", async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+      // Find customer by user ID
+      const customer = await getCustomerByUserId(req.user.id);
+      
+      if (!customer) {
+        return res.status(404).json({ error: 'No active subscription found' });
+      }
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const returnUrl = `${baseUrl}/subscription`;
+      
+      const session = await createBillingPortalSession(customer.id, returnUrl);
+      
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error('Error creating billing portal session:', error);
+      res.status(500).json({ error: 'Failed to create billing portal session' });
+    }
+  });
+  
+  // Stripe webhook for subscription events
+  app.post("/api/subscription/webhook", async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    
+    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return res.status(400).json({ error: 'Missing signature or webhook secret' });
+    }
+    
+    try {
+      // Use rawBody for webhook signature verification
+      const event = stripe.webhooks.constructEvent(
+        req.rawBody as Buffer,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+      
+      // Handle subscription events
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as any;
+          const userId = session.metadata?.userId;
+          const tier = session.metadata?.tier;
+          
+          if (userId && tier) {
+            // Retrieve full session to get customer and subscription IDs
+            const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+              expand: ['subscription', 'customer'],
+            });
+            
+            const customerId = typeof fullSession.customer === 'string' 
+              ? fullSession.customer 
+              : fullSession.customer?.id;
+            const subscriptionId = typeof fullSession.subscription === 'string'
+              ? fullSession.subscription
+              : fullSession.subscription?.id;
+            
+            // Update customer metadata with userId
+            if (customerId) {
+              await stripe.customers.update(customerId, {
+                metadata: { userId },
+              });
+            }
+            
+            // Update user subscription tier and IDs in database
+            await storage.updateUserSubscription(userId, tier, customerId, subscriptionId);
+            console.log(`[Stripe] Updated user ${userId} to tier: ${tier}, customer: ${customerId}`);
+          }
+          break;
+        }
+        
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as any;
+          const customer = await stripe.customers.retrieve(subscription.customer);
+          
+          if (customer && !customer.deleted && customer.metadata?.userId) {
+            const userId = customer.metadata.userId;
+            
+            // If subscription is cancelled or incomplete, downgrade to basic
+            if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
+              await storage.updateUserSubscription(userId, 'basic');
+              console.log(`[Stripe] Downgraded user ${userId} to basic`);
+            }
+          }
+          break;
+        }
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Stripe webhook error:', error);
+      res.status(400).json({ error: 'Webhook error' });
     }
   });
 
