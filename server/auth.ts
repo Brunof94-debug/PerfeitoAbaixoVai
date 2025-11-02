@@ -152,6 +152,28 @@ export async function setupAuth(app: Express, storage: IStorage) {
     });
   }
 
+  // Middleware to inject demo user in dev mode for all routes
+  if (isDevelopmentMode && !shouldSetupAuth) {
+    app.use((req, _res, next) => {
+      if (!req.user) {
+        // @ts-ignore - Adding demo user to request
+        req.user = {
+          id: "demo-user-1",
+          email: "demo@cryptosignal.ai",
+          firstName: "Demo",
+          lastName: "User",
+          profileImageUrl: null,
+          subscriptionTier: "pro",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      next();
+    });
+  }
+  
   // Always provide /api/auth/user endpoint
   app.get("/api/auth/user", async (req, res) => {
     if (req.isAuthenticated && req.isAuthenticated()) {

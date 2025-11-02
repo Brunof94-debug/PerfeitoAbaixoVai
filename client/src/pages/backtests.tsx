@@ -36,7 +36,7 @@ export default function Backtests() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest('/api/backtests', { method: 'POST', body: data }),
+    mutationFn: async (data: any) => apiRequest("POST", "/api/backtests", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/backtests'] });
       setIsDialogOpen(false);
