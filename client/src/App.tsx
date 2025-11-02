@@ -20,7 +20,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TrendingUp, Home, BarChart, Zap, Bell, BarChart3, CreditCard, Star, User } from "lucide-react";
+import { TrendingUp, Home, BarChart, Zap, Bell, BarChart3, CreditCard, Star, User, LineChart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 // Pages
@@ -30,6 +30,7 @@ import Markets from "@/pages/markets";
 import Signals from "@/pages/signals";
 import Alerts from "@/pages/alerts";
 import Backtests from "@/pages/backtests";
+import Analytics from "@/pages/analytics";
 import Subscription from "@/pages/subscription";
 import Watchlist from "@/pages/watchlist";
 import CryptoDetail from "@/pages/crypto-detail";
@@ -43,6 +44,7 @@ const menuItems = [
   { title: "Signals", icon: Zap, href: "/signals" },
   { title: "Alerts", icon: Bell, href: "/alerts" },
   { title: "Backtests", icon: BarChart3, href: "/backtests" },
+  { title: "Analytics", icon: LineChart, href: "/analytics" },
   { title: "Subscription", icon: CreditCard, href: "/subscription" },
   { title: "Profile", icon: User, href: "/profile" },
 ];
@@ -115,6 +117,7 @@ function AuthenticatedRouter() {
               <Route path="/signals" component={Signals} />
               <Route path="/alerts" component={Alerts} />
               <Route path="/backtests" component={Backtests} />
+              <Route path="/analytics" component={Analytics} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/profile" component={Profile} />
               <Route component={NotFound} />
