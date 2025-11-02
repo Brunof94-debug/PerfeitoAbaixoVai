@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import type { Signal } from "@shared/schema";
 export default function CryptoDetail() {
   const params = useParams();
   const cryptoId = params.id;
+  const [, setLocation] = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { 
@@ -147,11 +148,18 @@ export default function CryptoDetail() {
               >
                 <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetching) ? 'animate-spin' : ''}`} />
               </Button>
-              <Button variant="outline" data-testid="button-set-alert">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation('/alerts')}
+                data-testid="button-set-alert"
+              >
                 <Bell className="mr-2 h-4 w-4" />
                 Set Alert
               </Button>
-              <Button data-testid="button-view-signals">
+              <Button 
+                onClick={() => setLocation('/signals')}
+                data-testid="button-view-signals"
+              >
                 <TrendingUp className="mr-2 h-4 w-4" />
                 View Signals
               </Button>

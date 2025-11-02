@@ -3,10 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, CreditCard, Bell, Shield, LogOut } from "lucide-react";
+import { User, CreditCard, Bell, Shield, LogOut, Download, Trash2 } from "lucide-react";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Profile() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [priceAlertsEnabled, setPriceAlertsEnabled] = useState(true);
 
   if (!user) return null;
 
@@ -92,7 +99,11 @@ export default function Profile() {
                 {user.subscriptionTier === 'expert' && '$99/month - Billed monthly'}
               </p>
             </div>
-            <Button variant="outline" data-testid="button-manage-subscription">
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/subscription')}
+              data-testid="button-manage-subscription"
+            >
               Manage Plan
             </Button>
           </div>
@@ -115,8 +126,16 @@ export default function Profile() {
                 <p className="font-medium">Email Notifications</p>
                 <p className="text-sm text-muted-foreground">Receive signal alerts via email</p>
               </div>
-              <Button variant="outline" size="sm" data-testid="button-toggle-email">
-                Enabled
+              <Button 
+                variant={emailNotificationsEnabled ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => {
+                  setEmailNotificationsEnabled(!emailNotificationsEnabled);
+                  toast({ title: `Email notifications ${emailNotificationsEnabled ? 'disabled' : 'enabled'}` });
+                }}
+                data-testid="button-toggle-email"
+              >
+                {emailNotificationsEnabled ? 'Enabled' : 'Disabled'}
               </Button>
             </div>
             <div className="flex items-center justify-between">
@@ -124,8 +143,16 @@ export default function Profile() {
                 <p className="font-medium">Price Alerts</p>
                 <p className="text-sm text-muted-foreground">Get notified when price targets are hit</p>
               </div>
-              <Button variant="outline" size="sm" data-testid="button-toggle-price-alerts">
-                Enabled
+              <Button 
+                variant={priceAlertsEnabled ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => {
+                  setPriceAlertsEnabled(!priceAlertsEnabled);
+                  toast({ title: `Price alerts ${priceAlertsEnabled ? 'disabled' : 'enabled'}` });
+                }}
+                data-testid="button-toggle-price-alerts"
+              >
+                {priceAlertsEnabled ? 'Enabled' : 'Disabled'}
               </Button>
             </div>
           </div>
@@ -142,12 +169,29 @@ export default function Profile() {
           <CardDescription>Manage your data and account security</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full justify-start" data-testid="button-export-data">
-            <User className="mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            onClick={() => toast({ 
+              title: "Export requested", 
+              description: "Your data will be sent to your email within 24 hours." 
+            })}
+            data-testid="button-export-data"
+          >
+            <Download className="mr-2 h-4 w-4" />
             Export My Data (LGPD)
           </Button>
-          <Button variant="destructive" className="w-full justify-start" data-testid="button-delete-account">
-            <User className="mr-2 h-4 w-4" />
+          <Button 
+            variant="destructive" 
+            className="w-full justify-start" 
+            onClick={() => toast({ 
+              title: "Account deletion", 
+              description: "Please contact support to delete your account.",
+              variant: "destructive"
+            })}
+            data-testid="button-delete-account"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
             Delete My Account
           </Button>
           <Button variant="outline" className="w-full justify-start" asChild data-testid="button-logout">

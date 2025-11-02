@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,66 @@ import { PriceChange } from "@/components/price-change";
 import { Search, Star, TrendingUp, Wifi, WifiOff } from "lucide-react";
 import { Link } from "wouter";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Markets() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const { prices, isConnected } = useWebSocket();
   
   const { data: cryptos, isLoading } = useQuery<any[]>({
     queryKey: ['/api/cryptos'],
   });
+
+  const { data: watchlistItems } = useQuery<any[]>({
+    queryKey: ['/api/watchlist'],
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async (cryptoId: string) => {
+      const crypto = cryptos?.find(c => c.id === cryptoId);
+      return apiRequest("POST", "/api/watchlist", {
+        cryptoId,
+        cryptoSymbol: crypto?.symbol || '',
+        cryptoName: crypto?.name || '',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      toast({ title: "Added to watchlist" });
+    },
+    onError: () => {
+      toast({ title: "Failed to add to watchlist", variant: "destructive" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (id: number) => apiRequest("DELETE", `/api/watchlist/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      toast({ title: "Removed from watchlist" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove from watchlist", variant: "destructive" });
+    },
+  });
+
+  const isToggling = addMutation.isPending || removeMutation.isPending;
+
+  const handleStarClick = (e: React.MouseEvent, crypto: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isToggling) return;
+    
+    const watchlistItem = watchlistItems?.find(item => item.cryptoId === crypto.id);
+    if (watchlistItem) {
+      removeMutation.mutate(watchlistItem.id);
+    } else {
+      addMutation.mutate(crypto.id);
+    }
+  };
 
   // Merge real-time prices with static crypto data
   const cryptosWithLivePrices = useMemo(() => {
@@ -97,8 +149,15 @@ export default function Markets() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-lg">{crypto.name}</h3>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-star-${crypto.id}`}>
-                          <Star className="h-4 w-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={(e) => handleStarClick(e, crypto)}
+                          disabled={isToggling}
+                          data-testid={`button-star-${crypto.id}`}
+                        >
+                          <Star className={`h-4 w-4 ${watchlistItems?.find(item => item.cryptoId === crypto.id) ? 'fill-yellow-500 text-yellow-500' : ''}`} />
                         </Button>
                       </div>
                       <p className="text-sm text-muted-foreground">{crypto.symbol.toUpperCase()}</p>
