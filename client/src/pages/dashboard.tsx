@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -5,9 +6,12 @@ import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
 import { TrendingUp, Activity, Bell, BarChart } from "lucide-react";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import type { Signal } from "@shared/schema";
 
 export default function Dashboard() {
+  const { prices } = useWebSocket();
+  
   const { data: signals, isLoading: signalsLoading } = useQuery<Signal[]>({
     queryKey: ['/api/signals/recent'],
   });
@@ -15,6 +19,23 @@ export default function Dashboard() {
   const { data: marketOverview, isLoading: marketLoading } = useQuery<any>({
     queryKey: ['/api/cryptos/top'],
   });
+
+  // Merge real-time prices with market data
+  const liveMarketData = useMemo(() => {
+    if (!marketOverview) return [];
+    
+    return marketOverview.map((crypto: any) => {
+      const livePrice = prices[crypto.symbol.toLowerCase()];
+      if (livePrice) {
+        return {
+          ...crypto,
+          current_price: livePrice.price,
+          price_change_percentage_24h: livePrice.change24h,
+        };
+      }
+      return crypto;
+    });
+  }, [marketOverview, prices]);
 
   if (signalsLoading || marketLoading) {
     return (
@@ -101,7 +122,7 @@ export default function Dashboard() {
             <CardTitle>Top Movers</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {marketOverview?.slice(0, 5).map((crypto: any) => (
+            {liveMarketData.slice(0, 5).map((crypto: any) => (
               <div key={crypto.id} className="flex items-center gap-4">
                 <CryptoLogo symbol={crypto.symbol} size="sm" />
                 <div className="flex-1 min-w-0">

@@ -1,31 +1,57 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
-import { Search, Star, TrendingUp } from "lucide-react";
+import { Search, Star, TrendingUp, Wifi, WifiOff } from "lucide-react";
 import { Link } from "wouter";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 export default function Markets() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { prices, isConnected } = useWebSocket();
   
   const { data: cryptos, isLoading } = useQuery<any[]>({
     queryKey: ['/api/cryptos'],
   });
 
-  const filteredCryptos = cryptos?.filter((crypto) =>
+  // Merge real-time prices with static crypto data
+  const cryptosWithLivePrices = useMemo(() => {
+    if (!cryptos) return [];
+    
+    return cryptos.map(crypto => {
+      const livePrice = prices[crypto.symbol.toLowerCase()];
+      if (livePrice) {
+        return {
+          ...crypto,
+          current_price: livePrice.price,
+          price_change_percentage_24h: livePrice.change24h,
+        };
+      }
+      return crypto;
+    });
+  }, [cryptos, prices]);
+
+  const filteredCryptos = cryptosWithLivePrices.filter((crypto) =>
     crypto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     crypto.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Markets</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Markets</h1>
+            <Badge variant={isConnected ? "default" : "secondary"} className="gap-1">
+              {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {isConnected ? "Live" : "Disconnected"}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             Explore 1000+ cryptocurrencies with real-time pricing
           </p>
