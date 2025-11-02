@@ -99,13 +99,16 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateUserTradingStyle(userId: string, tradingStyle: string): Promise<void> {
-    await db
+    console.log(`[Storage] Updating trading style for user ${userId} to ${tradingStyle}`);
+    const result = await db
       .update(users)
       .set({
         tradingStyle,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
+      .returning();
+    console.log(`[Storage] Updated ${result.length} rows, new trading style: ${result[0]?.tradingStyle}`);
   }
 
   // ==================== WATCHLIST ====================

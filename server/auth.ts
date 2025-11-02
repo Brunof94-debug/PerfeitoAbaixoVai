@@ -205,20 +205,37 @@ export async function setupAuth(app: Express, storage: IStorage) {
     
     // SECURITY: Only allow demo user in explicit development mode
     if (isDevelopmentMode && !shouldSetupAuth) {
-      console.log("DEV MODE: Returning demo user");
-      const demoUser = {
-        id: "demo-user-1",
-        email: "demo@cryptosignal.ai",
-        firstName: "Demo",
-        lastName: "User",
-        profileImageUrl: null,
-        subscriptionTier: "pro",
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      return res.json(demoUser);
+      console.log("DEV MODE: Returning demo user from database");
+      
+      // Fetch the latest user data from database
+      try {
+        const demoUser = await db.query.users.findFirst({
+          where: eq(users.id, "demo-user-1")
+        });
+        
+        if (demoUser) {
+          return res.json(demoUser);
+        }
+        
+        // Fallback if demo user doesn't exist in DB yet
+        const fallbackDemoUser = {
+          id: "demo-user-1",
+          email: "demo@cryptosignal.ai",
+          firstName: "Demo",
+          lastName: "User",
+          profileImageUrl: null,
+          subscriptionTier: "pro",
+          tradingStyle: "swing_trade",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        return res.json(fallbackDemoUser);
+      } catch (error) {
+        console.error('[Demo User] Error fetching demo user:', error);
+        return res.status(500).json({ error: 'Failed to fetch user data' });
+      }
     }
     
     res.status(401).send("401: Unauthorized");

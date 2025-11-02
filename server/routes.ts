@@ -369,6 +369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { tradingStyle } = req.body;
       
+      console.log(`[PATCH /api/user/preferences] User ID: ${req.user.id}, New trading style: ${tradingStyle}`);
+      
       // Validate trading style
       const validStyles = ['scalping', 'day_trade', 'swing_trade', 'position'];
       if (!tradingStyle || !validStyles.includes(tradingStyle)) {
@@ -378,10 +380,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update user's trading style
+      console.log(`[PATCH /api/user/preferences] Calling storage.updateUserTradingStyle...`);
       await storage.updateUserTradingStyle(req.user.id, tradingStyle);
+      console.log(`[PATCH /api/user/preferences] Successfully updated trading style`);
       
       // Return updated user
       const updatedUser = await storage.getUser(req.user.id);
+      console.log(`[PATCH /api/user/preferences] Updated user trading style in DB: ${updatedUser?.tradingStyle}`);
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating user preferences:', error);

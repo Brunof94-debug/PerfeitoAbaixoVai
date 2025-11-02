@@ -34,10 +34,11 @@ export default function Signals() {
   // Mutation to update trading style
   const updateTradingStyleMutation = useMutation({
     mutationFn: async (tradingStyle: string) => {
-      return await apiRequest('PATCH', '/api/user/preferences', { tradingStyle });
+      const response = await apiRequest('PATCH', '/api/user/preferences', { tradingStyle });
+      return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: "Preferências atualizadas",
         description: "Seu estilo de trading foi salvo com sucesso. Os próximos sinais serão otimizados para sua estratégia.",
