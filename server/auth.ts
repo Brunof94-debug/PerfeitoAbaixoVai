@@ -6,6 +6,9 @@ import passport from "passport";
 import { Issuer, Strategy, type UserinfoResponse } from "openid-client";
 import type { IStorage } from "./storage";
 import type { User } from "@shared/schema";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -154,18 +157,36 @@ export async function setupAuth(app: Express, storage: IStorage) {
 
   // Middleware to inject demo user in dev mode for all routes
   if (isDevelopmentMode && !shouldSetupAuth) {
-    app.use((req, _res, next) => {
+    app.use(async (req, _res, next) => {
       if (!req.user) {
-        // @ts-ignore - Adding demo user to request
-        req.user = {
+        const demoUserData = {
           id: "demo-user-1",
           email: "demo@cryptosignal.ai",
           firstName: "Demo",
           lastName: "User",
           profileImageUrl: null,
-          subscriptionTier: "pro",
+          subscriptionTier: "pro" as const,
           stripeCustomerId: null,
           stripeSubscriptionId: null,
+        };
+        
+        // Ensure demo user exists in database for foreign key constraints
+        try {
+          const existing = await db.query.users.findFirst({
+            where: eq(users.id, demoUserData.id)
+          });
+          
+          if (!existing) {
+            console.log('[Demo User] Creating demo user in database');
+            await db.insert(users).values(demoUserData).onConflictDoNothing();
+          }
+        } catch (error) {
+          console.error('[Demo User] Error ensuring demo user exists:', error);
+        }
+        
+        // @ts-ignore - Adding demo user to request
+        req.user = {
+          ...demoUserData,
           createdAt: new Date(),
           updatedAt: new Date(),
         };

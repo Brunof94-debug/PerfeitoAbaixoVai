@@ -134,6 +134,9 @@ export const insertBacktestSchema = createInsertSchema(backtests).omit({
   status: true,
   createdAt: true,
   completedAt: true 
+}).extend({
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
 });
 export type InsertBacktest = z.infer<typeof insertBacktestSchema>;
 export type Backtest = typeof backtests.$inferSelect;

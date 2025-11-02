@@ -18,13 +18,27 @@ import { formatDistanceToNow } from "date-fns";
 export default function Backtests() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Default to last 30 days
+  const getDefaultDates = () => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  };
+  
+  const defaultDates = getDefaultDates();
   const [formData, setFormData] = useState({
     cryptoId: "",
     cryptoSymbol: "",
     strategyName: "MA Crossover",
     timeframe: "1h",
-    startDate: "",
-    endDate: "",
+    startDate: defaultDates.startDate,
+    endDate: defaultDates.endDate,
   });
 
   const { data: backtests, isLoading } = useQuery<Backtest[]>({
@@ -36,30 +50,62 @@ export default function Backtests() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest("POST", "/api/backtests", data),
+    mutationFn: async (data: any) => {
+      console.log('[Backtest Mutation] Calling API with:', data);
+      const response = await apiRequest("POST", "/api/backtests", data);
+      console.log('[Backtest Mutation] API response:', response);
+      return response;
+    },
     onSuccess: () => {
+      console.log('[Backtest Mutation] Success!');
       queryClient.invalidateQueries({ queryKey: ['/api/backtests'] });
       setIsDialogOpen(false);
-      setFormData({ cryptoId: "", cryptoSymbol: "", strategyName: "MA Crossover", timeframe: "1h", startDate: "", endDate: "" });
+      const newDates = getDefaultDates();
+      setFormData({ cryptoId: "", cryptoSymbol: "", strategyName: "MA Crossover", timeframe: "1h", startDate: newDates.startDate, endDate: newDates.endDate });
       toast({ title: "Backtest started", description: "Results will be ready in a few moments" });
     },
-    onError: () => {
-      toast({ title: "Failed to start backtest", variant: "destructive" });
+    onError: (error: any) => {
+      console.error('[Backtest Mutation] Error:', error);
+      toast({ title: "Failed to start backtest", description: error.message || "Unknown error", variant: "destructive" });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('[Backtest Submit] Form data:', formData);
+    
+    // Validation
+    if (!formData.cryptoId) {
+      console.error('[Backtest Submit] No crypto selected');
+      toast({ title: "Please select a cryptocurrency", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.startDate || !formData.endDate) {
+      console.error('[Backtest Submit] Missing dates');
+      toast({ title: "Please select start and end dates", variant: "destructive" });
+      return;
+    }
+    
     const selectedCrypto = cryptos?.find(c => c.id === formData.cryptoId);
-    if (!selectedCrypto) return;
+    if (!selectedCrypto) {
+      console.error('[Backtest Submit] Crypto not found in list');
+      toast({ title: "Selected cryptocurrency not found", variant: "destructive" });
+      return;
+    }
 
-    createMutation.mutate({
+    // Convert date strings to ISO format for backend timestamp fields
+    const startDate = new Date(formData.startDate).toISOString();
+    const endDate = new Date(formData.endDate).toISOString();
+    
+    const payload = {
       cryptoId: formData.cryptoId,
       cryptoSymbol: selectedCrypto.symbol,
       strategyName: formData.strategyName,
       timeframe: formData.timeframe,
-      startDate: new Date(formData.startDate),
-      endDate: new Date(formData.endDate),
+      startDate,
+      endDate,
       parameters: {
         shortPeriod: 12,
         longPeriod: 26,
@@ -67,7 +113,10 @@ export default function Backtests() {
         takeProfit: 0.05,
       },
       results: {},
-    });
+    };
+    
+    console.log('[Backtest Submit] Sending payload:', payload);
+    createMutation.mutate(payload);
   };
 
   return (
