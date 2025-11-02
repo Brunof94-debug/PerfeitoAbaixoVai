@@ -144,7 +144,7 @@ export default function Subscription() {
                 {currentTier === 'basic' ? 'No credit card required' : 'Billed monthly'}
               </p>
             </div>
-            {currentTier !== 'basic' && (
+            {currentTier !== 'basic' && user?.stripeCustomerId && (
               <Button 
                 variant="outline" 
                 onClick={handleManageBilling}
