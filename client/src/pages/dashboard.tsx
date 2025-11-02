@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
+import { StatCardSkeleton, CryptoCardSkeleton, SignalCardSkeleton } from "@/components/loading-skeletons";
 import { TrendingUp, Activity, Bell, BarChart, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { queryClient } from "@/lib/queryClient";
@@ -75,19 +75,43 @@ export default function Dashboard() {
   if (signalsLoading || marketLoading) {
     return (
       <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your trading signals and market performance
+          </p>
+        </div>
+
+        {/* Stats Grid Skeleton */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-32 mb-2" />
-                <Skeleton className="h-3 w-20" />
-              </CardContent>
-            </Card>
+            <StatCardSkeleton key={i} />
           ))}
+        </div>
+
+        {/* Market Overview Skeleton */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Movers</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <CryptoCardSkeleton key={i} />
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Signals</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <SignalCardSkeleton key={i} />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

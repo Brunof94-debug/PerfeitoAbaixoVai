@@ -3,10 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { WatchlistItemSkeleton } from "@/components/loading-skeletons";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { Search, Plus, Star, Trash2, Wifi, WifiOff } from "lucide-react";
@@ -154,19 +154,8 @@ export default function Watchlist() {
 
       {watchlistLoading ? (
         <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-5 w-32 mb-2" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <Skeleton className="h-6 w-24" />
-                </div>
-              </CardContent>
-            </Card>
+          {[...Array(6)].map((_, i) => (
+            <WatchlistItemSkeleton key={i} />
           ))}
         </div>
       ) : filteredWatchlist.length > 0 ? (

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ChartSkeleton, TechnicalIndicatorsSkeleton, SignalCardSkeleton } from "@/components/loading-skeletons";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
@@ -62,10 +62,32 @@ export default function CryptoDetail() {
   if (cryptoLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-24 w-full" />
-        <div className="grid gap-6 md:grid-cols-2">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <ChartSkeleton />
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Technical Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TechnicalIndicatorsSkeleton />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Trading Signals</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <SignalCardSkeleton key={i} />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { BacktestResultSkeleton } from "@/components/loading-skeletons";
 import { BarChart3, Plus, TrendingUp } from "lucide-react";
 import { CryptoLogo } from "@/components/crypto-logo";
 import type { Backtest } from "@shared/schema";
@@ -184,18 +184,8 @@ export default function Backtests() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {[...Array(4)].map((_, i) => (
+            <BacktestResultSkeleton key={i} />
           ))}
         </div>
       ) : backtests && backtests.length > 0 ? (

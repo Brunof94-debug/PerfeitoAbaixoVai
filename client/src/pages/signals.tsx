@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { SignalBadge } from "@/components/signal-badge";
+import { SignalCardSkeleton } from "@/components/loading-skeletons";
 import { Brain, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
@@ -104,17 +104,10 @@ export default function Signals() {
 
       {isLoading ? (
         <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(8)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
-                <div className="flex gap-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                </div>
+                <SignalCardSkeleton />
               </CardContent>
             </Card>
           ))}
