@@ -6,6 +6,7 @@ CryptoSignal AI is a professional-grade cryptocurrency trading platform that pro
 
 **Core Capabilities:**
 - AI-generated trading signals with confidence scores
+- **Customizable trading strategies** (Scalping: 1m-15m, Day Trade: 15m-4h, Swing Trade: 4h-3d, Position: 1d-1w)
 - Real-time price tracking via WebSocket connections
 - Technical indicator analysis (RSI, MACD, EMA, Bollinger Bands, VWAP)
 - Strategy backtesting with performance metrics
@@ -24,6 +25,12 @@ CryptoSignal AI is a professional-grade cryptocurrency trading platform that pro
 - ✅ E2E testing framework fully functional with Playwright
 - ✅ Backtest creation flow working end-to-end
 - ✅ Fixed multiple issues: API signatures, date handling, schema validation, database constraints
+- ✅ **Trading Style Preferences System (Completed November 2, 2025)**
+  - Users can select trading strategy: Scalping, Day Trade, Swing Trade, or Position
+  - Preferences persist in database across sessions
+  - AI signals adapt based on selected trading style (timeframes and analysis)
+  - Real-time UI updates with proper cache invalidation
+  - Fixed demo user middleware to load from database instead of hardcoded values
 
 ## User Preferences
 

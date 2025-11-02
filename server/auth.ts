@@ -160,38 +160,51 @@ export async function setupAuth(app: Express, storage: IStorage) {
   if (isDevelopmentMode && !shouldSetupAuth) {
     app.use(async (req, _res, next) => {
       if (!req.user) {
-        const demoUserData = {
-          id: "demo-user-1",
-          email: "demo@cryptosignal.ai",
-          firstName: "Demo",
-          lastName: "User",
-          profileImageUrl: null,
-          subscriptionTier: "pro" as const,
-          tradingStyle: "swing_trade" as const,
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-        };
+        const demoUserId = "demo-user-1";
         
-        // Ensure demo user exists in database for foreign key constraints
         try {
-          const existing = await db.query.users.findFirst({
-            where: eq(users.id, demoUserData.id)
+          // Fetch demo user from database (or create if doesn't exist)
+          let demoUser = await db.query.users.findFirst({
+            where: eq(users.id, demoUserId)
           });
           
-          if (!existing) {
+          if (!demoUser) {
             console.log('[Demo User] Creating demo user in database');
-            await db.insert(users).values(demoUserData).onConflictDoNothing();
+            const demoUserData = {
+              id: demoUserId,
+              email: "demo@cryptosignal.ai",
+              firstName: "Demo",
+              lastName: "User",
+              profileImageUrl: null,
+              subscriptionTier: "pro" as const,
+              tradingStyle: "swing_trade" as const,
+              stripeCustomerId: null,
+              stripeSubscriptionId: null,
+            };
+            const [created] = await db.insert(users).values(demoUserData).returning();
+            demoUser = created;
           }
+          
+          // @ts-ignore - Adding demo user from database to request
+          req.user = demoUser;
         } catch (error) {
-          console.error('[Demo User] Error ensuring demo user exists:', error);
+          console.error('[Demo User] Error loading demo user:', error);
+          // Fallback to static demo user if database query fails
+          // @ts-ignore
+          req.user = {
+            id: demoUserId,
+            email: "demo@cryptosignal.ai",
+            firstName: "Demo",
+            lastName: "User",
+            profileImageUrl: null,
+            subscriptionTier: "pro",
+            tradingStyle: "swing_trade",
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
         }
-        
-        // @ts-ignore - Adding demo user to request
-        req.user = {
-          ...demoUserData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
       }
       next();
     });

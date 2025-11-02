@@ -39,6 +39,7 @@ export default function Signals() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/signals'] });
       toast({
         title: "Preferências atualizadas",
         description: "Seu estilo de trading foi salvo com sucesso. Os próximos sinais serão otimizados para sua estratégia.",
