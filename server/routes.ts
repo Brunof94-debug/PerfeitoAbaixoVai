@@ -16,6 +16,7 @@ import {
   clearAllCaches
 } from "./cache";
 import { registerAlertClient, startAlertMonitor } from "./alert-monitor";
+import { runBacktest } from "./backtesting-engine";
 
 // Initialize OpenAI client (using Replit AI Integrations)
 const openai = new OpenAI({
@@ -471,18 +472,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const backtest = await storage.createBacktest(data);
       
-      // Simulate backtest processing (in production, this would be async/background job)
-      setTimeout(async () => {
+      // Run backtest in background (async processing)
+      (async () => {
         try {
-          // Mock backtest results
-          const results = {
-            winRate: 0.65,
-            profitFactor: 1.8,
-            maxDrawdown: 0.15,
-            sharpe: 1.2,
-            totalTrades: 45,
-            trades: [],
-          };
+          // Run real backtesting engine
+          const results = await runBacktest(data);
           
           await storage.updateBacktest(backtest.id, {
             status: 'completed',
@@ -490,12 +484,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completedAt: new Date(),
           });
         } catch (error) {
-          console.error('Error completing backtest:', error);
+          console.error('Error running backtest:', error);
           await storage.updateBacktest(backtest.id, {
             status: 'failed',
           });
         }
-      }, 2000);
+      })();
       
       res.json(backtest);
     } catch (error) {
