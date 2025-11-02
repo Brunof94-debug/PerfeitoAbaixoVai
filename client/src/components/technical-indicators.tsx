@@ -9,12 +9,22 @@ interface TechnicalIndicatorsProps {
   symbol: string;
   currentPrice: number;
   cryptoId: string;
+  timeframe?: '1' | '7' | '30' | '90';
 }
 
-export function TechnicalIndicators({ symbol, currentPrice, cryptoId }: TechnicalIndicatorsProps) {
+const timeframeToDays: Record<string, string> = {
+  '1': '1',
+  '7': '7',
+  '30': '30',
+  '90': '90',
+};
+
+export function TechnicalIndicators({ symbol, currentPrice, cryptoId, timeframe = '7' }: TechnicalIndicatorsProps) {
+  const days = timeframeToDays[timeframe];
+  
   // Fetch historical OHLC data for calculations
   const { data: ohlcData, isLoading, isError } = useQuery<any[]>({
-    queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=30`],
+    queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=${days}`],
     enabled: !!cryptoId,
     retry: 1,
   });

@@ -8,6 +8,8 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 interface CryptoChartProps {
   symbol: string;
   cryptoId: string;
+  timeframe?: '1' | '7' | '30' | '90';
+  onTimeframeChange?: (timeframe: '1' | '7' | '30' | '90') => void;
 }
 
 type Timeframe = '1' | '7' | '30' | '90';
@@ -26,12 +28,23 @@ const timeframeToDays: Record<Timeframe, string> = {
   '90': '90',
 };
 
-export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
+export function CryptoChart({ symbol, cryptoId, timeframe: externalTimeframe, onTimeframeChange }: CryptoChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>('7');
+  const [internalTimeframe, setInternalTimeframe] = useState<Timeframe>('7');
   const { prices } = useWebSocket();
+
+  // Use external timeframe if provided, otherwise use internal
+  const timeframe = externalTimeframe ?? internalTimeframe;
+  
+  const handleTimeframeChange = (newTimeframe: Timeframe) => {
+    if (onTimeframeChange) {
+      onTimeframeChange(newTimeframe);
+    } else {
+      setInternalTimeframe(newTimeframe);
+    }
+  };
 
   // Fetch historical OHLC data
   const { data: ohlcData, isLoading, isError, error } = useQuery<CandlestickData[]>({
@@ -131,7 +144,7 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
                   key={tf}
                   variant={timeframe === tf ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTimeframe(tf)}
+                  onClick={() => handleTimeframeChange(tf)}
                   data-testid={`button-timeframe-${tf}`}
                   className="px-3"
                 >

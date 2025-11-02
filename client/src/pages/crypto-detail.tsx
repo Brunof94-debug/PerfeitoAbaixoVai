@@ -20,6 +20,7 @@ export default function CryptoDetail() {
   const cryptoId = params.id;
   const [, setLocation] = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeframe, setTimeframe] = useState<'1' | '7' | '30' | '90'>('7');
 
   const { 
     data: crypto, 
@@ -171,13 +172,19 @@ export default function CryptoDetail() {
       {/* Charts and Indicators */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <CryptoChart symbol={crypto.symbol} cryptoId={crypto.id} />
+          <CryptoChart 
+            symbol={crypto.symbol} 
+            cryptoId={crypto.id}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
+          />
         </div>
         <div>
           <TechnicalIndicators 
             symbol={crypto.symbol} 
             currentPrice={marketData.current_price?.usd || 0}
             cryptoId={crypto.id}
+            timeframe={timeframe}
           />
         </div>
       </div>
