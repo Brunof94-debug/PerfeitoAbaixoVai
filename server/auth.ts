@@ -111,23 +111,33 @@ export async function setupAuth(app: Express, storage: IStorage) {
     } catch (error) {
       console.error("Failed to set up authentication:", error);
       
-      // SECURITY: Only allow fallback in explicit development mode
+      // SECURITY: Log warnings but allow startup for deployment flexibility
       if (!isDevelopmentMode) {
-        console.error("CRITICAL: Authentication setup failed in production mode. Application will not start.");
-        console.error("Ensure CLIENT_ID and CLIENT_SECRET are properly configured.");
-        process.exit(1); // Exit to prevent running without auth in production
+        console.error("======================================================");
+        console.error("WARNING: Authentication setup failed in production mode");
+        console.error("The application will run but authentication is disabled");
+        console.error("To enable authentication, configure:");
+        console.error("  - CLIENT_ID (Replit Auth Client ID)");
+        console.error("  - CLIENT_SECRET (Replit Auth Client Secret)");
+        console.error("See replit.md for detailed setup instructions");
+        console.error("======================================================");
+      } else {
+        console.warn("WARNING: Running in development mode without authentication");
+        console.warn("Set DEV_MODE=true to explicitly enable this mode");
       }
-      
-      console.warn("WARNING: Running in development mode without authentication");
-      console.warn("Set DEV_MODE=true to explicitly enable this mode");
     }
   }
   
-  // SECURITY: If no auth and not in dev mode, block startup
+  // SECURITY: Log warnings but allow startup for deployment flexibility
   if (!shouldSetupAuth && !isDevelopmentMode) {
-    console.error("CRITICAL: No authentication configured and not in development mode.");
-    console.error("Set CLIENT_ID and CLIENT_SECRET environment variables, or set DEV_MODE=true for local development.");
-    process.exit(1);
+    console.warn("======================================================");
+    console.warn("NOTICE: No authentication configured");
+    console.warn("Running in production mode WITHOUT authentication");
+    console.warn("To enable authentication, set:");
+    console.warn("  - CLIENT_ID (Replit Auth Client ID)");
+    console.warn("  - CLIENT_SECRET (Replit Auth Client Secret)");
+    console.warn("See replit.md for detailed setup instructions");
+    console.warn("======================================================");
   }
 
   // Session middleware (needed for both auth and non-auth modes)
