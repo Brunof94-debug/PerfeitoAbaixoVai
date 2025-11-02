@@ -20,7 +20,11 @@ async function fetchCryptoData(limit: number = 100) {
   const response = await fetch(
     `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false&price_change_percentage=24h,7d`
   );
-  if (!response.ok) throw new Error("Failed to fetch crypto data");
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`CoinGecko API error (${response.status}):`, text);
+    throw new Error(`Failed to fetch crypto data: ${response.status} ${response.statusText}`);
+  }
   return response.json();
 }
 
@@ -29,7 +33,11 @@ async function fetchSingleCrypto(id: string) {
   const response = await fetch(
     `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`
   );
-  if (!response.ok) throw new Error("Failed to fetch crypto data");
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`CoinGecko API error for ${id} (${response.status}):`, text);
+    throw new Error(`Failed to fetch crypto data: ${response.status} ${response.statusText}`);
+  }
   return response.json();
 }
 
@@ -202,7 +210,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=${days}`
       );
       
-      if (!response.ok) throw new Error("Failed to fetch OHLC data");
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`CoinGecko OHLC error for ${id} (${response.status}):`, text);
+        throw new Error(`Failed to fetch OHLC data: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       
       // CoinGecko returns array of [timestamp, open, high, low, close]

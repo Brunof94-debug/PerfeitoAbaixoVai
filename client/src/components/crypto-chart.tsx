@@ -34,9 +34,10 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
   const { prices } = useWebSocket();
 
   // Fetch historical OHLC data
-  const { data: ohlcData } = useQuery<CandlestickData[]>({
+  const { data: ohlcData, isLoading, isError, error } = useQuery<CandlestickData[]>({
     queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=${timeframeToDays[timeframe]}`],
     enabled: !!cryptoId,
+    retry: 1,
   });
 
   // Create chart once on mount
@@ -142,7 +143,20 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div ref={chartContainerRef} className="w-full" data-testid="crypto-chart" />
+        {isError ? (
+          <div className="h-[400px] flex items-center justify-center text-muted-foreground" data-testid="chart-error">
+            <div className="text-center">
+              <p className="mb-2">Unable to load chart data</p>
+              <p className="text-sm">API rate limit reached. Please try again in a few moments.</p>
+            </div>
+          </div>
+        ) : isLoading ? (
+          <div className="h-[400px] flex items-center justify-center">
+            <p className="text-muted-foreground">Loading chart...</p>
+          </div>
+        ) : (
+          <div ref={chartContainerRef} className="w-full" data-testid="crypto-chart" />
+        )}
       </CardContent>
     </Card>
   );

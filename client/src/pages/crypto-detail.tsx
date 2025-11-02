@@ -16,11 +16,13 @@ export default function CryptoDetail() {
   const cryptoId = params.id;
 
   const { data: crypto, isLoading: cryptoLoading } = useQuery<any>({
-    queryKey: ['/api/cryptos', cryptoId],
+    queryKey: [`/api/cryptos/${cryptoId}`],
+    enabled: !!cryptoId,
   });
 
   const { data: signals, isLoading: signalsLoading } = useQuery<Signal[]>({
-    queryKey: ['/api/signals/crypto', cryptoId],
+    queryKey: [`/api/signals/crypto/${cryptoId}`],
+    enabled: !!cryptoId,
   });
 
   if (cryptoLoading) {

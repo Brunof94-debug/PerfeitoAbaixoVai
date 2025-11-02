@@ -13,10 +13,27 @@ interface TechnicalIndicatorsProps {
 
 export function TechnicalIndicators({ symbol, currentPrice, cryptoId }: TechnicalIndicatorsProps) {
   // Fetch historical OHLC data for calculations
-  const { data: ohlcData, isLoading } = useQuery<any[]>({
+  const { data: ohlcData, isLoading, isError } = useQuery<any[]>({
     queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=30`],
     enabled: !!cryptoId,
+    retry: 1,
   });
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Technical Indicators</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground" data-testid="indicators-error">
+            <p>Unable to load indicators</p>
+            <p className="text-sm mt-2">API rate limit reached</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading || !ohlcData || ohlcData.length === 0) {
     return (
