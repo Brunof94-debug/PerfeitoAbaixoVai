@@ -1,0 +1,163 @@
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { User, CreditCard, Bell, Shield, LogOut } from "lucide-react";
+
+export default function Profile() {
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  const tierBadgeColor = {
+    basic: "bg-gray-600/10 text-gray-700 dark:text-gray-400 border-gray-600/20",
+    pro: "bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-600/20",
+    expert: "bg-purple-600/10 text-purple-700 dark:text-purple-400 border-purple-600/20",
+  }[user.subscriptionTier] || "";
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+        <p className="text-muted-foreground">
+          Manage your account settings and preferences
+        </p>
+      </div>
+
+      {/* Profile Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+          <CardDescription>Your personal details and subscription status</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={user.profileImageUrl || undefined} />
+              <AvatarFallback className="text-2xl">
+                {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-xl font-semibold">
+                  {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.email
+                  }
+                </h3>
+                <Badge className={tierBadgeColor}>
+                  {user.subscriptionTier.toUpperCase()}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 pt-4 border-t">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Member Since</p>
+              <p className="font-semibold">
+                {new Date(user.createdAt).toLocaleDateString('en-US', {
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Subscription Tier</p>
+              <p className="font-semibold capitalize">{user.subscriptionTier}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Subscription Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Subscription
+          </CardTitle>
+          <CardDescription>Manage your subscription and billing</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">Current Plan: {user.subscriptionTier.toUpperCase()}</p>
+              <p className="text-sm text-muted-foreground">
+                {user.subscriptionTier === 'basic' && 'Free forever - upgrade for more features'}
+                {user.subscriptionTier === 'pro' && '$29/month - Billed monthly'}
+                {user.subscriptionTier === 'expert' && '$99/month - Billed monthly'}
+              </p>
+            </div>
+            <Button variant="outline" data-testid="button-manage-subscription">
+              Manage Plan
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+          <CardDescription>Configure your alert preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Email Notifications</p>
+                <p className="text-sm text-muted-foreground">Receive signal alerts via email</p>
+              </div>
+              <Button variant="outline" size="sm" data-testid="button-toggle-email">
+                Enabled
+              </Button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Price Alerts</p>
+                <p className="text-sm text-muted-foreground">Get notified when price targets are hit</p>
+              </div>
+              <Button variant="outline" size="sm" data-testid="button-toggle-price-alerts">
+                Enabled
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Security */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Security & Privacy
+          </CardTitle>
+          <CardDescription>Manage your data and account security</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button variant="outline" className="w-full justify-start" data-testid="button-export-data">
+            <User className="mr-2 h-4 w-4" />
+            Export My Data (LGPD)
+          </Button>
+          <Button variant="destructive" className="w-full justify-start" data-testid="button-delete-account">
+            <User className="mr-2 h-4 w-4" />
+            Delete My Account
+          </Button>
+          <Button variant="outline" className="w-full justify-start" asChild data-testid="button-logout">
+            <a href="/api/logout">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

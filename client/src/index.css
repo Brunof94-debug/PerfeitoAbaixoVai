@@ -76,9 +76,15 @@
   --chart-4: 32 95% 44%;
   --chart-5: 340 82% 35%;
 
-  --font-sans: Open Sans, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* Crypto trading colors - success/warning for price movements */
+  --success: 142 76% 36%;
+  --success-foreground: 142 76% 98%;
+  --warning: 32 95% 44%;
+  --warning-foreground: 32 95% 98%;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
@@ -202,6 +208,12 @@
   --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 4px 6px -1px hsl(0 0% 0% / 0.00);
   --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 8px 10px -1px hsl(0 0% 0% / 0.00);
   --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
+  
+  /* Crypto trading colors - success/warning for price movements */
+  --success: 142 76% 65%;
+  --success-foreground: 142 76% 98%;
+  --warning: 32 95% 65%;
+  --warning-foreground: 32 95% 98%;
 
   /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
