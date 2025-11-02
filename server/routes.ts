@@ -15,6 +15,7 @@ import {
   getCacheStats,
   clearAllCaches
 } from "./cache";
+import { registerAlertClient, startAlertMonitor } from "./alert-monitor";
 
 // Initialize OpenAI client (using Replit AI Integrations)
 const openai = new OpenAI({
@@ -506,6 +507,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WebSocket authentication tokens (temporary nonces)
+  const wsTokens = new Map<string, { userId: string; expiresAt: number }>();
+  
+  // Clean up expired tokens every minute
+  setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of wsTokens.entries()) {
+      if (data.expiresAt < now) {
+        wsTokens.delete(token);
+      }
+    }
+  }, 60000);
+
+  // Generate WebSocket authentication token
+  app.get("/api/auth/ws-token", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    // Generate random token
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+    
+    wsTokens.set(token, {
+      userId: req.user.id,
+      expiresAt,
+    });
+    
+    res.json({ token, expiresAt });
+  });
+
   // ==================== WEBSOCKET SERVER ====================
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -514,11 +546,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const connections = new Map<string, Set<WebSocket>>();
 
   wss.on('connection', (ws: WebSocket) => {
-    console.log('New WebSocket connection');
+    console.log('[WebSocket] New connection');
+    
+    let authenticatedUserId: string | null = null;
     
     ws.on('message', async (message: string) => {
       try {
         const data = JSON.parse(message.toString());
+        
+        // Handle authentication - validate token
+        if (data.type === 'auth' && data.token) {
+          const tokenData = wsTokens.get(data.token);
+          
+          if (!tokenData) {
+            ws.send(JSON.stringify({
+              type: 'auth-error',
+              error: 'Invalid or expired token',
+            }));
+            ws.close();
+            return;
+          }
+          
+          if (tokenData.expiresAt < Date.now()) {
+            wsTokens.delete(data.token);
+            ws.send(JSON.stringify({
+              type: 'auth-error',
+              error: 'Token expired',
+            }));
+            ws.close();
+            return;
+          }
+          
+          // Token is valid - extract userId
+          authenticatedUserId = tokenData.userId;
+          wsTokens.delete(data.token); // One-time use
+          
+          registerAlertClient(ws, authenticatedUserId);
+          console.log(`[WebSocket] Client authenticated for user: ${authenticatedUserId}`);
+          ws.send(JSON.stringify({
+            type: 'auth-success',
+            userId: authenticatedUserId,
+          }));
+          return;
+        }
         
         if (data.type === 'subscribe' && data.cryptoId) {
           // Subscribe to crypto price updates
@@ -547,6 +617,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       connections.forEach((set) => set.delete(ws));
     });
   });
+  
+  // Start alert monitoring
+  startAlertMonitor();
 
   // Simulate price updates (in production, this would be real-time data feed)
   setInterval(async () => {

@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Alert as AlertComponent, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Bell, Plus, Trash2, ToggleLeft, ToggleRight, BellRing, Info } from "lucide-react";
 import { CryptoLogo } from "@/components/crypto-logo";
 import type { Alert } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { useAlertNotifications } from "@/hooks/useAlertNotifications";
 
 export default function Alerts() {
   const { toast } = useToast();
+  const { notificationPermission, requestPermission } = useAlertNotifications();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     cryptoId: "",
@@ -156,6 +159,24 @@ export default function Alerts() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {notificationPermission !== 'granted' && (
+        <AlertComponent data-testid="alert-notification-permission">
+          <BellRing className="h-5 w-5" />
+          <AlertTitle>Enable Browser Notifications</AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>Allow notifications to receive instant alerts when price targets are hit.</span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={requestPermission}
+              data-testid="button-enable-notifications"
+            >
+              Enable Notifications
+            </Button>
+          </AlertDescription>
+        </AlertComponent>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
