@@ -1,0 +1,240 @@
+Perfeito! Abaixo vai um texto completo (estilo “pedido de proposta” / escopo) que você pode enviar para a empresa de desenvolvimento. É só copiar e adaptar onde achar necessário.
+
+---
+
+# Solicitação de Proposta (RFP) – App de Análise de Criptomoedas com IA e Sinais Profissionais
+
+## 1) Objetivo do projeto
+
+Desenvolver um aplicativo móvel (Android e iOS) que:
+
+* Faça **análise de criptomoedas** em tempo real e histórica.
+* Gere **sinais profissionais** (compra, venda, atenção/alerta) usando **inteligência artificial** + indicadores técnicos.
+* Ofereça **assinaturas** (mensal/anual) com diferentes níveis de acesso.
+* Siga requisitos de **segurança, performance, LGPD** e boas práticas de produto.
+
+> Observação legal: o aplicativo exibirá avisos claros de que **não se trata de recomendação de investimento** e que os usuários devem fazer sua própria análise. Atender às normas aplicáveis (ex.: CVM) com consultoria jurídica fornecida por nós, se necessário.
+
+---
+
+## 2) Público-alvo
+
+* Traders e investidores pessoa física no Brasil (inicialmente), com interesse em cripto.
+* Níveis: iniciante a avançado.
+
+---
+
+## 3) Plataformas e tecnologia (preferência)
+
+* **Mobile**: Flutter (Android/iOS).
+* **Backend**: Node.js ou Python (a empresa pode recomendar), com APIs REST/GraphQL.
+* **Infra**: AWS/GCP/Azure (preferência por região Brasil/São Paulo quando disponível), com CI/CD.
+* **Banco de dados**: relacional (PostgreSQL) + cache (Redis) + armazenamento de séries temporais (pode ser o próprio Postgres particionado ou serviço gerenciado).
+* **Mensageria**: fila (ex.: SQS/PubSub) para jobs de IA e alertas.
+* **Observabilidade**: logs estruturados, métricas, tracing e dashboard.
+
+Se houver sugestão diferente, justificar tecnicamente.
+
+---
+
+## 4) Escopo funcional (detalhado)
+
+### 4.1 Cadastro, login e contas
+
+* Login por e-mail/senha, Apple/Google, MFA/2FA opcional.
+* Verificação de e-mail.
+* Gestão de perfil, idioma (pt-BR, pronto para multilíngue) e fuso.
+
+### 4.2 Planos e assinaturas
+
+* Planos: **Basic**, **Pro**, **Expert** (nomes e preços variáveis).
+* Gate de recursos por plano (ex.: nº de sinais/dia, nº de moedas seguidas, indicadores premium, backtests).
+* Free trial (X dias) configurável.
+* Cobrança: **In-App Purchases** (Apple/Google) e **web checkout** (ex.: Stripe, Pagar.me, Mercado Pago) com Pix, cartão e boleto quando aplicável.
+* Faturamento, notas e comprovantes.
+* Gestão de cupom, upgrade/downgrade, cancelamento, reembolso conforme política.
+
+### 4.3 Criptomoedas e dados de mercado
+
+* Integração com provedores (exemplos: **CoinGecko**, **CoinMarketCap** para dados gerais; **Binance**, **Kraken**, etc., para preços e order books).
+
+  > A empresa deve propor a arquitetura de **consolidação** de dados e **caching** com tolerância a rate limits.
+* Séries de preço **OHLCV** em múltiplos timeframes (1m, 5m, 15m, 1h, 4h, 1d).
+* Websocket para preços em tempo quase real (latência alvo < 2s).
+* Lista de moedas favorita(s), busca, filtros (market cap, volume, variação 24h/7d).
+
+### 4.4 Módulo de análises e IA
+
+* Combinação de:
+
+  * **Indicadores técnicos** (ex.: RSI, MACD, EMA, Bollinger, VWAP).
+  * **Sinais de price action** (padrões de candles).
+  * **Modelos de IA** (classificação de tendência/força, detecção de anomalias, probabilidade de rompimento).
+* Painel de **sinais** por moeda/timeframe: tipo (compra/venda/atenção), timestamp, confiança (0–100), racional (explicação curta).
+* **Backtesting**:
+
+  * Seleção de estratégia (indicadores e parâmetros).
+  * Períodos customizáveis.
+  * Resultados: **retorno acumulado**, **win rate**, **profit factor**, **max drawdown**, **Sharpe**, curva de equity, sensibilidade por parâmetro.
+* **Walk-forward**/validação fora da amostra (OOS) simples.
+* **Gestão de risco** sugerida (ex.: tamanhos de posição, stop-loss/trailing, take-profit). Não executar ordens; apenas **sinalizar**.
+* Histórico de performance dos sinais (por estratégia e por moeda), com transparência e filtro por período.
+* Modo **paper trading** (simulação) opcional para o usuário testar sinais.
+
+> Importante: Documentar os **limites e vieses** do modelo. Registrar versão do modelo que gerou cada sinal (audit trail).
+
+### 4.5 Alertas e notificações
+
+* Push (FCM/APNs), e-mail e integrações opcionais com Telegram/Discord.
+* Regras configuráveis: por moeda, indicador, gatilho de preço/variação, novos sinais, proximidade de suporte/resistência, etc.
+* Políticas anti-spam (limite de frequência, agrupamento).
+
+### 4.6 Telas principais (MVP)
+
+1. **Onboarding** com consentimentos LGPD e disclaimers.
+2. **Home**: resumo do mercado, destaques, últimos sinais relevantes.
+3. **Explorar moedas**: lista com filtros/ordenar, detalhes de cada ativo.
+4. **Detalhe do ativo**: gráfico (vários timeframes), indicadores, **sinais recentes**, notícias (se incluírem), botão “alertar”.
+5. **Sinais**: feed por relevância/tempo, filtros por estratégia e timeframe, confiança, explicação.
+6. **Backtesting**: configurar, rodar, ver resultados e salvar presets.
+7. **Assinatura**: planos, benefícios, checkout, faturas.
+8. **Perfil**: dados, segurança (2FA), preferências, idioma, exclusão de conta.
+9. **Legal**: termos de uso, política de privacidade, disclaimers.
+
+### 4.7 Painel administrativo (web)
+
+* Gestão de usuários, planos, cupons, reembolsos.
+* Publicação e versionamento de **modelos/estratégias**.
+* Monitoramento de filas/rotinas, consumo de APIs de mercado e custos.
+* Configuração de limites por plano e feature flags.
+* **Relatórios**: churn, MRR/ARR, engajamento, taxas de conversão, performance de sinais por estratégia.
+
+---
+
+## 5) Requisitos não funcionais
+
+### 5.1 Segurança e LGPD
+
+* Criptografia **em trânsito** (TLS 1.2+) e **em repouso** (dados sensíveis).
+* Hash de senhas (argon2/bcrypt), gestão segura de chaves e segredos (vault/KMS).
+* **Consentimento** e **finalidade** de uso de dados; política de retenção e exclusão (“direito ao esquecimento”).
+* Logs de auditoria para ações críticas e geração de sinais (modelo/versão).
+* Testes de segurança (SAST/DAST) e pentest antes do lançamento.
+
+### 5.2 Performance e disponibilidade
+
+* Uptime alvo **99,9%** (SLA a negociar).
+* Latência de API < 300 ms (p95) para endpoints críticos.
+* Escalabilidade horizontal para picos (websockets, alertas, jobs de IA).
+* Mecanismos de **degradação graciosa** se um provedor de dados cair.
+
+### 5.3 Qualidade, testes e DevOps
+
+* **CI/CD** com ambientes: dev, staging, produção.
+* Pirâmide de testes: unitário, integração, E2E; testes de carga para websockets e alertas.
+* Code review, standard lint/format.
+* Documentação técnica (APIs, esquemas, deploy, runbooks).
+
+---
+
+## 6) Integrações (mínimo)
+
+* Provedores de dados de mercado (empresa sugere e justifica).
+* Pagamentos (web e in-app).
+* Push notifications.
+* (Opcional) Mensageria de comunidade (Telegram/Discord).
+* (Opcional) Notícias cripto (agregador) com cache e atribuição.
+
+---
+
+## 7) Critérios de aceite (exemplos objetivos)
+
+* Cadastro/login com 2FA funcionando e logs de segurança.
+* Assinatura ativa libera recursos Pro/Expert corretamente; downgrade/upgrade OK.
+* Painel de **sinais** exibe eventos em até **2 segundos** após o gatilho (mercado ativo).
+* Backtesting roda em janela de 2 anos para 50 moedas em < 60s (em infraestrutura definida).
+* Dashboards de performance: win rate, drawdown e Sharpe corretos (validação por amostras).
+* Políticas LGPD implementadas: exportar dados do usuário e exclusão integral sob demanda.
+* App publicado em **Google Play** e **App Store** (contas fornecidas por nós), atendendo guidelines.
+
+---
+
+## 8) Entregáveis e marcos
+
+1. **Descoberta & Arquitetura** (1–2 semanas): detalhamento técnico, diagrama, escolha de provedores.
+2. **Protótipo navegável (Figma)**: fluxos principais e UI.
+3. **MVP**: cadastro/login, dados de mercado, gráficos, primeiros sinais, assinaturas, alertas.
+4. **Backtesting + IA v1**: estratégias configuráveis e relatórios.
+5. **Painel Admin**.
+6. **Beta fechado** (testes e ajustes).
+7. **Lançamento** produção + handover (runbooks, monitoramento, documentação).
+
+Cada marco com build instalável, notas de versão e checklist de aceite.
+
+---
+
+## 9) UX/UI e acessibilidade
+
+* Design system leve, modo claro/escuro, ícones claros para risco e confiança.
+* Gráficos com zoom/pan, tooltips, e legibilidade em telas pequenas.
+* Acessibilidade: contraste mínimo, tamanhos de toque, suporte a leitores de tela.
+
+---
+
+## 10) Analítica e métricas
+
+* Eventos de produto (onboarding, conversão, retenção, alertas lidos).
+* Funil de assinatura (trial → paga), churn, LTV, cohort.
+* Monitoramento de custo por chamada de provedor e por usuário.
+
+---
+
+## 11) Propriedade intelectual e compliance
+
+* Código-fonte, modelos e assets desenvolvidos **pertencem ao contratante** (nós).
+* Terceiros (bibliotecas, dados) licenciados adequadamente.
+* Termos de uso/privacidade e disclaimers fornecidos para implementação no app.
+
+---
+
+## 12) Manutenção e suporte
+
+* Período de **garantia** pós-lançamento (corrigir bugs).
+* Planos mensais de suporte: SLOs, plantão incidentes, atualizações de SO/lojas.
+* Atualizações de modelos/estratégias e tuning de performance.
+
+---
+
+## 13) Informações para a proposta da empresa
+
+Por favor, enviar:
+
+* Escopo técnico proposto e justificativas de escolhas.
+* Arquitetura (diagramas), provedores de dados e custos estimados (infra + APIs).
+* Cronograma por marcos com horas previstas por perfil.
+* Time (papéis, senioridade), cases relevantes.
+* Estimativa de custo por fase e custo mensal de manutenção.
+* Riscos mapeados e mitigação (ex.: rate limit, quedas de provedor, latência).
+* Termos de SLA/SLO e política de segurança.
+
+---
+
+## 14) Itens opcionais (diferenciais)
+
+* **Web app** espelhando funções do mobile.
+* **Marketplace de estratégias** (criadores terceiros).
+* **Recomendações personalizadas** via IA com explicabilidade (XAI).
+* **Gamificação**: badges, streaks de estudo/uso.
+* **Integração de corretoras** para “trade com 1 clique” (apenas se viável regulatoriamente; desabilitado por padrão).
+
+---
+
+### Anexos (se quiser incluir)
+
+* **Wireframes** simples das telas.
+* **Políticas legais** (rascunho de Termos/Privacidade).
+* **Guia de marca** (cores, logotipo).
+
+---
+
+Se quiser, eu também preparo uma **versão curta** para e-mail/WhatsApp com os principais pontos e um quadro de comparação de fornecedores. Quer que eu gere essa versão agora?
