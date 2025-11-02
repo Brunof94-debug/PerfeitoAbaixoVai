@@ -1,21 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { SignalBadge } from "@/components/signal-badge";
-import { Brain } from "lucide-react";
+import { Brain, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { queryClient } from "@/lib/queryClient";
 import type { Signal } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Signals() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [timeframeFilter, setTimeframeFilter] = useState<string>("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: signals, isLoading } = useQuery<Signal[]>({
+  const { 
+    data: signals, 
+    isLoading, 
+    dataUpdatedAt,
+    isStale,
+    isFetching 
+  } = useQuery<Signal[]>({
     queryKey: ['/api/signals'],
   });
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['/api/signals'] });
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const filteredSignals = signals?.filter((signal) => {
     if (typeFilter !== "all" && signal.signalType !== typeFilter) return false;
@@ -31,8 +51,29 @@ export default function Signals() {
           <p className="text-muted-foreground">
             AI-powered signals with confidence scores and detailed rationale
           </p>
+          {dataUpdatedAt && (
+            <div className="flex items-center gap-2 mt-1" data-testid="text-last-updated">
+              <div className="text-xs text-muted-foreground">
+                Updated {formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}
+              </div>
+              {isStale && !isFetching && (
+                <Badge variant="outline" className="text-xs" data-testid="badge-stale-data">
+                  Cached
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isFetching}
+            data-testid="button-refresh-signals"
+          >
+            <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetching) ? 'animate-spin' : ''}`} />
+          </Button>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-32" data-testid="select-signal-type">
               <SelectValue placeholder="Type" />

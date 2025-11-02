@@ -1,24 +1,59 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
-import { TrendingUp, Activity, Bell, BarChart } from "lucide-react";
+import { TrendingUp, Activity, Bell, BarChart, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { queryClient } from "@/lib/queryClient";
+import { formatDistanceToNow } from "date-fns";
 import type { Signal } from "@shared/schema";
 
 export default function Dashboard() {
   const { prices } = useWebSocket();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const { data: signals, isLoading: signalsLoading } = useQuery<Signal[]>({
+  const { 
+    data: signals, 
+    isLoading: signalsLoading, 
+    dataUpdatedAt: signalsUpdatedAt,
+    isStale: signalsStale,
+    isFetching: signalsFetching 
+  } = useQuery<Signal[]>({
     queryKey: ['/api/signals/recent'],
   });
 
-  const { data: marketOverview, isLoading: marketLoading } = useQuery<any>({
+  const { 
+    data: marketOverview, 
+    isLoading: marketLoading, 
+    dataUpdatedAt: marketUpdatedAt,
+    isStale: marketStale,
+    isFetching: marketFetching 
+  } = useQuery<any>({
     queryKey: ['/api/cryptos/top'],
   });
+
+  // Use the most recent dataUpdatedAt from both queries
+  const lastUpdated = Math.max(signalsUpdatedAt || 0, marketUpdatedAt || 0);
+  const isStale = signalsStale || marketStale;
+  const isFetching = signalsFetching || marketFetching;
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/signals/recent'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/cryptos/top'] }),
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500); // Minimum visual feedback
+    }
+  };
 
   // Merge real-time prices with market data
   const liveMarketData = useMemo(() => {
@@ -89,11 +124,36 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of your trading signals and market performance
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your trading signals and market performance
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastUpdated > 0 && (
+            <div className="flex items-center gap-2" data-testid="text-last-updated">
+              <div className="text-right text-sm text-muted-foreground">
+                Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+              </div>
+              {isStale && !isFetching && (
+                <Badge variant="outline" className="text-xs" data-testid="badge-stale-data">
+                  Cached
+                </Badge>
+              )}
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isFetching}
+            data-testid="button-refresh-dashboard"
+          >
+            <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetching) ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}

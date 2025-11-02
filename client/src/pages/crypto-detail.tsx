@@ -1,29 +1,63 @@
+import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
 import { CryptoChart } from "@/components/crypto-chart";
 import { TechnicalIndicators } from "@/components/technical-indicators";
-import { Star, TrendingUp, BarChart3, Bell } from "lucide-react";
+import { Star, TrendingUp, BarChart3, Bell, RefreshCw } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
+import { formatDistanceToNow } from "date-fns";
 import type { Signal } from "@shared/schema";
 
 export default function CryptoDetail() {
   const params = useParams();
   const cryptoId = params.id;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: crypto, isLoading: cryptoLoading } = useQuery<any>({
+  const { 
+    data: crypto, 
+    isLoading: cryptoLoading,
+    dataUpdatedAt: cryptoUpdatedAt,
+    isStale: cryptoStale,
+    isFetching: cryptoFetching 
+  } = useQuery<any>({
     queryKey: [`/api/cryptos/${cryptoId}`],
     enabled: !!cryptoId,
   });
 
-  const { data: signals, isLoading: signalsLoading } = useQuery<Signal[]>({
+  const { 
+    data: signals, 
+    isLoading: signalsLoading,
+    dataUpdatedAt: signalsUpdatedAt,
+    isStale: signalsStale,
+    isFetching: signalsFetching 
+  } = useQuery<Signal[]>({
     queryKey: [`/api/signals/crypto/${cryptoId}`],
     enabled: !!cryptoId,
   });
+
+  const dataUpdatedAt = Math.max(cryptoUpdatedAt || 0, signalsUpdatedAt || 0);
+  const isStale = cryptoStale || signalsStale;
+  const isFetching = cryptoFetching || signalsFetching;
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [`/api/cryptos/${cryptoId}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/signals/crypto/${cryptoId}`] }),
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   if (cryptoLoading) {
     return (
@@ -68,8 +102,29 @@ export default function CryptoDetail() {
                 </p>
                 <PriceChange value={marketData.price_change_percentage_24h || 0} className="text-lg" />
               </div>
+              {dataUpdatedAt > 0 && (
+                <div className="flex items-center gap-2 mt-1" data-testid="text-last-updated">
+                  <div className="text-xs text-muted-foreground">
+                    Updated {formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}
+                  </div>
+                  {isStale && !isFetching && (
+                    <Badge variant="outline" className="text-xs" data-testid="badge-stale-data">
+                      Cached
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isFetching}
+                data-testid="button-refresh-crypto"
+              >
+                <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetching) ? 'animate-spin' : ''}`} />
+              </Button>
               <Button variant="outline" data-testid="button-set-alert">
                 <Bell className="mr-2 h-4 w-4" />
                 Set Alert
