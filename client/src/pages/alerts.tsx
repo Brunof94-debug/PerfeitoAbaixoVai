@@ -38,7 +38,7 @@ export default function Alerts() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest('/api/alerts', { method: 'POST', body: data }),
+    mutationFn: async (data: any) => apiRequest("POST", "/api/alerts", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
       setIsDialogOpen(false);
@@ -51,7 +51,7 @@ export default function Alerts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest(`/api/alerts/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/alerts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
       toast({ title: "Alert deleted" });
@@ -60,7 +60,7 @@ export default function Alerts() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => 
-      apiRequest(`/api/alerts/${id}`, { method: 'PATCH', body: { isActive } }),
+      apiRequest("PATCH", `/api/alerts/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
     },

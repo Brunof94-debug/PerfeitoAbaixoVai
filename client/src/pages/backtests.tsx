@@ -277,8 +277,8 @@ export default function Backtests() {
 
                     <p className="text-sm text-muted-foreground">
                       Started {formatDistanceToNow(new Date(backtest.createdAt), { addSuffix: true })}
-                      {backtest.completedAt && backtest.completedAt !== null && (
-                        <> • Completed {formatDistanceToNow(new Date(backtest.completedAt), { addSuffix: true })}</>
+                      {backtest.completedAt && (
+                        <> • Completed {formatDistanceToNow(backtest.completedAt, { addSuffix: true })}</>
                       )}
                     </p>
                   </div>

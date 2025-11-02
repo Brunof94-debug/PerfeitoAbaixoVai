@@ -33,12 +33,10 @@ export default function Watchlist() {
   const addMutation = useMutation({
     mutationFn: async (cryptoId: string) => {
       const crypto = allCryptos?.find(c => c.id === cryptoId);
-      return apiRequest('/api/watchlist', {
-        method: 'POST',
-        body: {
-          cryptoId,
-          cryptoSymbol: crypto?.symbol || '',
-        },
+      return apiRequest("POST", "/api/watchlist", {
+        cryptoId,
+        cryptoSymbol: crypto?.symbol || '',
+        cryptoName: crypto?.name || '',
       });
     },
     onSuccess: () => {
@@ -53,7 +51,7 @@ export default function Watchlist() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: async (id: number) => apiRequest(`/api/watchlist/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: number) => apiRequest("DELETE", `/api/watchlist/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
       toast({ title: "Removed from watchlist" });
