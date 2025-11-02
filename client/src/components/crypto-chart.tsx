@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { createChart, IChartApi, ISeriesApi, CandlestickData, UTCTimestamp } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CandlestickData, UTCTimestamp, CandlestickSeries } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -67,8 +67,8 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
 
     chartRef.current = chart;
 
-    // Create candlestick series
-    const series = chart.addCandlestickSeries({
+    // Create candlestick series (v5.0+ API)
+    const series = chart.addSeries(CandlestickSeries, {
       upColor: '#10b981',
       downColor: '#ef4444',
       borderUpColor: '#10b981',

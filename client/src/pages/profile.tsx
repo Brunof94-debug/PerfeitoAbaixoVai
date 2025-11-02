@@ -14,6 +14,36 @@ export default function Profile() {
   const { toast } = useToast();
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [priceAlertsEnabled, setPriceAlertsEnabled] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Redirect to home page after successful logout
+        window.location.href = '/';
+      } else {
+        toast({ 
+          title: "Logout failed", 
+          description: "Please try again.",
+          variant: "destructive" 
+        });
+        setIsLoggingOut(false);
+      }
+    } catch (error) {
+      toast({ 
+        title: "Logout failed", 
+        description: "Please try again.",
+        variant: "destructive" 
+      });
+      setIsLoggingOut(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -66,10 +96,13 @@ export default function Profile() {
             <div>
               <p className="text-sm text-muted-foreground mb-1">Member Since</p>
               <p className="font-semibold">
-                {new Date(user.createdAt).toLocaleDateString('en-US', {
-                  month: 'long',
-                  year: 'numeric'
-                })}
+                {user.createdAt 
+                  ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric'
+                    })
+                  : 'Unknown'
+                }
               </p>
             </div>
             <div>
@@ -194,11 +227,15 @@ export default function Profile() {
             <Trash2 className="mr-2 h-4 w-4" />
             Delete My Account
           </Button>
-          <Button variant="outline" className="w-full justify-start" asChild data-testid="button-logout">
-            <a href="/api/logout">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </a>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            data-testid="button-logout"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {isLoggingOut ? 'Signing out...' : 'Sign Out'}
           </Button>
         </CardContent>
       </Card>
