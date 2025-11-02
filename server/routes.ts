@@ -8,38 +8,19 @@ import { fromZodError } from "zod-validation-error";
 import { insertWatchlistSchema, insertAlertSchema, insertSignalSchema, insertBacktestSchema } from "@shared/schema";
 import OpenAI from "openai";
 import pRetry from "p-retry";
+import { 
+  fetchCryptoDataCached, 
+  fetchSingleCryptoCached, 
+  fetchOHLCDataCached,
+  getCacheStats,
+  clearAllCaches
+} from "./cache";
 
 // Initialize OpenAI client (using Replit AI Integrations)
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
-
-// Helper: Fetch crypto data from CoinGecko
-async function fetchCryptoData(limit: number = 100) {
-  const response = await fetch(
-    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false&price_change_percentage=24h,7d`
-  );
-  if (!response.ok) {
-    const text = await response.text();
-    console.error(`CoinGecko API error (${response.status}):`, text);
-    throw new Error(`Failed to fetch crypto data: ${response.status} ${response.statusText}`);
-  }
-  return response.json();
-}
-
-// Helper: Fetch single crypto data
-async function fetchSingleCrypto(id: string) {
-  const response = await fetch(
-    `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`
-  );
-  if (!response.ok) {
-    const text = await response.text();
-    console.error(`CoinGecko API error for ${id} (${response.status}):`, text);
-    throw new Error(`Failed to fetch crypto data: ${response.status} ${response.statusText}`);
-  }
-  return response.json();
-}
 
 // Helper: Calculate simple technical indicators (mock for MVP)
 function calculateIndicators(prices: number[]) {
@@ -168,10 +149,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get top cryptocurrencies
   app.get("/api/cryptos/top", async (req, res) => {
     try {
-      const cryptos = await fetchCryptoData(20);
+      const cryptos = await fetchCryptoDataCached(20);
       res.json(cryptos);
     } catch (error) {
       console.error('Error fetching top cryptos:', error);
+      
+      // If rate limit, return specific error
+      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        return;
+      }
+      
       res.status(500).json({ error: 'Failed to fetch cryptocurrency data' });
     }
   });
@@ -180,10 +168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cryptos", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      const cryptos = await fetchCryptoData(limit);
+      const cryptos = await fetchCryptoDataCached(limit);
       res.json(cryptos);
     } catch (error) {
       console.error('Error fetching cryptos:', error);
+      
+      // If rate limit, return specific error
+      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        return;
+      }
+      
       res.status(500).json({ error: 'Failed to fetch cryptocurrency data' });
     }
   });
@@ -191,10 +186,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single cryptocurrency by ID
   app.get("/api/cryptos/:id", async (req, res) => {
     try {
-      const crypto = await fetchSingleCrypto(req.params.id);
+      const crypto = await fetchSingleCryptoCached(req.params.id);
       res.json(crypto);
     } catch (error) {
       console.error('Error fetching crypto:', error);
+      
+      // If rate limit, return specific error
+      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        return;
+      }
+      
       res.status(404).json({ error: 'Cryptocurrency not found' });
     }
   });
@@ -203,19 +205,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cryptos/:id/ohlc", async (req, res) => {
     try {
       const { id } = req.params;
-      const days = req.query.days || '1'; // 1, 7, 30, 90, 365
+      const days = (req.query.days as string) || '1'; // 1, 7, 30, 90, 365
       
-      // Fetch OHLC data from CoinGecko
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=${days}`
-      );
-      
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`CoinGecko OHLC error for ${id} (${response.status}):`, text);
-        throw new Error(`Failed to fetch OHLC data: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
+      // Fetch OHLC data from CoinGecko (cached)
+      const data = await fetchOHLCDataCached(id, days);
       
       // CoinGecko returns array of [timestamp, open, high, low, close]
       const formatted = data.map((candle: number[]) => ({
@@ -229,6 +222,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(formatted);
     } catch (error) {
       console.error('Error fetching OHLC data:', error);
+      
+      // If rate limit, return specific error
+      if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        return;
+      }
+      
       res.status(500).json({ error: 'Failed to fetch historical data' });
     }
   });
@@ -272,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate a new AI signal for a cryptocurrency (admin or cron job)
   app.post("/api/signals/generate/:cryptoId", async (req, res) => {
     try {
-      const crypto = await fetchSingleCrypto(req.params.cryptoId);
+      const crypto = await fetchSingleCryptoCached(req.params.cryptoId);
       const signalData = await generateAISignal({
         id: crypto.id,
         symbol: crypto.symbol,
@@ -520,7 +520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (clients.size === 0) continue;
       
       try {
-        const crypto = await fetchSingleCrypto(cryptoId);
+        const crypto = await fetchSingleCryptoCached(cryptoId);
         const update = {
           type: 'price_update',
           cryptoId,
@@ -539,6 +539,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   }, 30000); // Update every 30 seconds
+
+  // ==================== CACHE MANAGEMENT ====================
+  
+  // Get cache statistics
+  app.get("/api/cache/stats", (req, res) => {
+    const stats = getCacheStats();
+    res.json({
+      ...stats,
+      configuration: {
+        singleCryptoTTL: '30 seconds',
+        cryptoListTTL: '3 minutes',
+        ohlcTTL: '3 minutes',
+        maxSize: 100,
+      },
+    });
+  });
+
+  // Clear all caches (admin only in production)
+  app.post("/api/cache/clear", (req, res) => {
+    clearAllCaches();
+    res.json({ success: true, message: 'All caches cleared' });
+  });
 
   return httpServer;
 }
