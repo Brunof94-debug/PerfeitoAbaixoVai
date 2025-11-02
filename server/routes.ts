@@ -149,8 +149,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get top cryptocurrencies
   app.get("/api/cryptos/top", async (req, res) => {
     try {
-      const cryptos = await fetchCryptoDataCached(20);
-      res.json(cryptos);
+      const result = await fetchCryptoDataCached(20);
+      
+      // Check if stale data was returned
+      if (result && result.isStale) {
+        res.set('X-Data-Stale', 'true');
+        res.set('X-Cache-Warning', 'Showing cached data due to rate limiting');
+        return res.json(result.data);
+      }
+      
+      res.json(result);
     } catch (error) {
       console.error('Error fetching top cryptos:', error);
       
@@ -168,8 +176,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cryptos", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      const cryptos = await fetchCryptoDataCached(limit);
-      res.json(cryptos);
+      const result = await fetchCryptoDataCached(limit);
+      
+      // Check if stale data was returned
+      if (result && result.isStale) {
+        res.set('X-Data-Stale', 'true');
+        res.set('X-Cache-Warning', 'Showing cached data due to rate limiting');
+        return res.json(result.data);
+      }
+      
+      res.json(result);
     } catch (error) {
       console.error('Error fetching cryptos:', error);
       
@@ -186,8 +202,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single cryptocurrency by ID
   app.get("/api/cryptos/:id", async (req, res) => {
     try {
-      const crypto = await fetchSingleCryptoCached(req.params.id);
-      res.json(crypto);
+      const result = await fetchSingleCryptoCached(req.params.id);
+      
+      // Check if stale data was returned
+      if (result && result.isStale) {
+        res.set('X-Data-Stale', 'true');
+        res.set('X-Cache-Warning', 'Showing cached data due to rate limiting');
+        // Remove isStale property before sending
+        const { isStale, ...crypto } = result;
+        return res.json(crypto);
+      }
+      
+      res.json(result);
     } catch (error) {
       console.error('Error fetching crypto:', error);
       
@@ -208,10 +234,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const days = (req.query.days as string) || '1'; // 1, 7, 30, 90, 365
       
       // Fetch OHLC data from CoinGecko (cached)
-      const data = await fetchOHLCDataCached(id, days);
+      const result = await fetchOHLCDataCached(id, days);
+      
+      // Check if stale data was returned
+      let dataToFormat = result;
+      if (result && result.isStale) {
+        res.set('X-Data-Stale', 'true');
+        res.set('X-Cache-Warning', 'Showing cached data due to rate limiting');
+        dataToFormat = result.data;
+      }
       
       // CoinGecko returns array of [timestamp, open, high, low, close]
-      const formatted = data.map((candle: number[]) => ({
+      const formatted = dataToFormat.map((candle: number[]) => ({
         time: candle[0] / 1000, // Convert to seconds for lightweight-charts
         open: candle[1],
         high: candle[2],
