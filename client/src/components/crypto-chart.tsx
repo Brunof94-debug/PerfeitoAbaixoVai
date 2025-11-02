@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createChart, IChartApi, ISeriesApi, CandlestickData, UTCTimestamp } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,25 +10,36 @@ interface CryptoChartProps {
   cryptoId: string;
 }
 
-type Timeframe = '1' | '5' | '15' | '60' | '240' | 'D';
+type Timeframe = '1' | '7' | '30' | '90';
 
 const timeframeLabels: Record<Timeframe, string> = {
-  '1': '1m',
-  '5': '5m',
-  '15': '15m',
-  '60': '1h',
-  '240': '4h',
-  'D': '1d',
+  '1': '24h',
+  '7': '7d',
+  '30': '30d',
+  '90': '90d',
+};
+
+const timeframeToDays: Record<Timeframe, string> = {
+  '1': '1',
+  '7': '7',
+  '30': '30',
+  '90': '90',
 };
 
 export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>('60');
-  const [chartType, setChartType] = useState<'candlestick' | 'line'>('candlestick');
+  const [timeframe, setTimeframe] = useState<Timeframe>('7');
   const { prices } = useWebSocket();
 
+  // Fetch historical OHLC data
+  const { data: ohlcData } = useQuery<CandlestickData[]>({
+    queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=${timeframeToDays[timeframe]}`],
+    enabled: !!cryptoId,
+  });
+
+  // Create chart once on mount
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -66,49 +78,6 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
 
     seriesRef.current = series;
 
-    // Generate mock historical data for demonstration
-    // In production, this would come from CoinGecko API
-    const generateMockData = (): CandlestickData[] => {
-      const data: CandlestickData[] = [];
-      const now = Date.now();
-      const basePrice = 50000;
-      let currentPrice = basePrice;
-
-      const intervals = timeframe === 'D' ? 90 : timeframe === '240' ? 100 : 100;
-      const msPerCandle = 
-        timeframe === '1' ? 60000 :
-        timeframe === '5' ? 300000 :
-        timeframe === '15' ? 900000 :
-        timeframe === '60' ? 3600000 :
-        timeframe === '240' ? 14400000 :
-        86400000;
-
-      for (let i = intervals; i >= 0; i--) {
-        const timestamp = (now - (i * msPerCandle)) / 1000;
-        const volatility = currentPrice * 0.02;
-        const change = (Math.random() - 0.5) * volatility;
-        
-        const open = currentPrice;
-        const close = currentPrice + change;
-        const high = Math.max(open, close) + Math.random() * volatility * 0.5;
-        const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-
-        data.push({
-          time: timestamp as UTCTimestamp,
-          open,
-          high,
-          low,
-          close,
-        });
-
-        currentPrice = close;
-      }
-
-      return data;
-    };
-
-    series.setData(generateMockData());
-
     // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -124,7 +93,14 @@ export function CryptoChart({ symbol, cryptoId }: CryptoChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [timeframe]);
+  }, []); // Only create once
+
+  // Update data when OHLC data changes
+  useEffect(() => {
+    if (seriesRef.current && ohlcData && ohlcData.length > 0) {
+      seriesRef.current.setData(ohlcData);
+    }
+  }, [ohlcData]);
 
   // Update chart with real-time price
   useEffect(() => {

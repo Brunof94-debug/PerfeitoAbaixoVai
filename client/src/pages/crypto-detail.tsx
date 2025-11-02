@@ -89,7 +89,8 @@ export default function CryptoDetail() {
         <div>
           <TechnicalIndicators 
             symbol={crypto.symbol} 
-            currentPrice={marketData.current_price?.usd || 0} 
+            currentPrice={marketData.current_price?.usd || 0}
+            cryptoId={crypto.id}
           />
         </div>
       </div>

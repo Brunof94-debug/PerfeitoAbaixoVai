@@ -1,36 +1,91 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { RSI, MACD, EMA, BollingerBands } from 'technicalindicators';
 
 interface TechnicalIndicatorsProps {
   symbol: string;
   currentPrice: number;
+  cryptoId: string;
 }
 
-export function TechnicalIndicators({ symbol, currentPrice }: TechnicalIndicatorsProps) {
-  // In production, these would be calculated using the technicalindicators package
-  // with real historical price data. For now, generating realistic mock values.
+export function TechnicalIndicators({ symbol, currentPrice, cryptoId }: TechnicalIndicatorsProps) {
+  // Fetch historical OHLC data for calculations
+  const { data: ohlcData, isLoading } = useQuery<any[]>({
+    queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=30`],
+    enabled: !!cryptoId,
+  });
+
+  if (isLoading || !ohlcData || ohlcData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Technical Indicators</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i}>
+              <Skeleton className="h-5 w-32 mb-2" />
+              <Skeleton className="h-2 w-full mb-2" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Extract close prices for indicator calculations
+  const closePrices = ohlcData.map(d => d.close);
   
-  const rsi = 45 + Math.random() * 30; // RSI typically 0-100
-  const macd = {
-    value: (Math.random() - 0.5) * 100,
-    signal: (Math.random() - 0.5) * 80,
-    histogram: (Math.random() - 0.5) * 20,
-  };
+  // Calculate RSI (14-period)
+  const rsiValues = RSI.calculate({ values: closePrices, period: 14 });
+  const rsi = rsiValues.length > 0 ? rsiValues[rsiValues.length - 1] : 50;
+  
+  // Calculate MACD
+  const macdValues = MACD.calculate({
+    values: closePrices,
+    fastPeriod: 12,
+    slowPeriod: 26,
+    signalPeriod: 9,
+    SimpleMAOscillator: false,
+    SimpleMASignal: false,
+  });
+  const macd = macdValues.length > 0 ? macdValues[macdValues.length - 1] : { MACD: 0, signal: 0, histogram: 0 };
+  
+  // Calculate EMAs
+  const ema12Values = EMA.calculate({ values: closePrices, period: 12 });
+  const ema26Values = EMA.calculate({ values: closePrices, period: 26 });
+  const ema50Values = EMA.calculate({ values: closePrices, period: 50 });
   
   const ema = {
-    ema12: currentPrice * (0.98 + Math.random() * 0.04),
-    ema26: currentPrice * (0.96 + Math.random() * 0.08),
-    ema50: currentPrice * (0.94 + Math.random() * 0.12),
+    ema12: ema12Values.length > 0 ? ema12Values[ema12Values.length - 1] : currentPrice,
+    ema26: ema26Values.length > 0 ? ema26Values[ema26Values.length - 1] : currentPrice,
+    ema50: ema50Values.length > 0 ? ema50Values[ema50Values.length - 1] : currentPrice,
+  };
+  
+  // Calculate Bollinger Bands
+  const bbValues = BollingerBands.calculate({
+    values: closePrices,
+    period: 20,
+    stdDev: 2,
+  });
+  const bb = bbValues.length > 0 ? bbValues[bbValues.length - 1] : {
+    upper: currentPrice * 1.02,
+    middle: currentPrice,
+    lower: currentPrice * 0.98,
   };
   
   const bollinger = {
-    upper: currentPrice * 1.05,
-    middle: currentPrice,
-    lower: currentPrice * 0.95,
+    upper: bb.upper,
+    middle: bb.middle,
+    lower: bb.lower,
   };
   
-  const vwap = currentPrice * (0.99 + Math.random() * 0.02);
+  // Simple VWAP approximation (using close prices as proxy)
+  const vwap = closePrices.slice(-20).reduce((a, b) => a + b, 0) / 20;
 
   const getRSISignal = (value: number): { label: string; variant: 'default' | 'destructive' | 'secondary' } => {
     if (value < 30) return { label: 'Oversold', variant: 'default' };
@@ -39,8 +94,8 @@ export function TechnicalIndicators({ symbol, currentPrice }: TechnicalIndicator
   };
 
   const getMACDSignal = (): 'bullish' | 'bearish' | 'neutral' => {
-    if (macd.value > macd.signal && macd.histogram > 0) return 'bullish';
-    if (macd.value < macd.signal && macd.histogram < 0) return 'bearish';
+    if (macd.MACD > macd.signal && macd.histogram > 0) return 'bullish';
+    if (macd.MACD < macd.signal && macd.histogram < 0) return 'bearish';
     return 'neutral';
   };
 
@@ -98,16 +153,16 @@ export function TechnicalIndicators({ symbol, currentPrice }: TechnicalIndicator
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">MACD Line</p>
-              <p className="font-mono font-semibold">{macd.value.toFixed(2)}</p>
+              <p className="font-mono font-semibold">{macd.MACD?.toFixed(2) || '0.00'}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Signal</p>
-              <p className="font-mono font-semibold">{macd.signal.toFixed(2)}</p>
+              <p className="font-mono font-semibold">{macd.signal?.toFixed(2) || '0.00'}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Histogram</p>
-              <p className={`font-mono font-semibold ${macd.histogram > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {macd.histogram.toFixed(2)}
+              <p className={`font-mono font-semibold ${(macd.histogram || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {macd.histogram?.toFixed(2) || '0.00'}
               </p>
             </div>
           </div>
