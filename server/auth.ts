@@ -166,48 +166,53 @@ export async function setupAuth(app: Express, storage: IStorage) {
     });
   }
 
-  // Middleware to inject demo user in dev mode for all routes
-  if (isDevelopmentMode && !shouldSetupAuth) {
+  // Middleware to inject demo/guest user when auth is not configured
+  if (!shouldSetupAuth) {
     app.use(async (req, _res, next) => {
       if (!req.user) {
-        const demoUserId = "demo-user-1";
+        // In development, use demo user with Pro tier for full feature testing
+        // In production, use guest user with Basic tier (limited features)
+        const userId = isDevelopmentMode ? "demo-user-1" : "guest-user-1";
+        const userTier = isDevelopmentMode ? "pro" : "basic";
+        const userEmail = isDevelopmentMode ? "demo@cryptosignal.ai" : "guest@cryptosignal.ai";
+        const userName = isDevelopmentMode ? "Demo" : "Guest";
         
         try {
-          // Fetch demo user from database (or create if doesn't exist)
-          let demoUser = await db.query.users.findFirst({
-            where: eq(users.id, demoUserId)
+          // Fetch user from database (or create if doesn't exist)
+          let user = await db.query.users.findFirst({
+            where: eq(users.id, userId)
           });
           
-          if (!demoUser) {
-            console.log('[Demo User] Creating demo user in database');
-            const demoUserData = {
-              id: demoUserId,
-              email: "demo@cryptosignal.ai",
-              firstName: "Demo",
+          if (!user) {
+            console.log(`[${userName} User] Creating ${userName.toLowerCase()} user in database`);
+            const userData = {
+              id: userId,
+              email: userEmail,
+              firstName: userName,
               lastName: "User",
               profileImageUrl: null,
-              subscriptionTier: "pro" as const,
+              subscriptionTier: userTier as const,
               tradingStyle: "swing_trade" as const,
               stripeCustomerId: null,
               stripeSubscriptionId: null,
             };
-            const [created] = await db.insert(users).values(demoUserData).returning();
-            demoUser = created;
+            const [created] = await db.insert(users).values(userData).returning();
+            user = created;
           }
           
-          // @ts-ignore - Adding demo user from database to request
-          req.user = demoUser;
+          // @ts-ignore - Adding user from database to request
+          req.user = user;
         } catch (error) {
-          console.error('[Demo User] Error loading demo user:', error);
-          // Fallback to static demo user if database query fails
+          console.error(`[${userName} User] Error loading ${userName.toLowerCase()} user:`, error);
+          // Fallback to static user if database query fails
           // @ts-ignore
           req.user = {
-            id: demoUserId,
-            email: "demo@cryptosignal.ai",
-            firstName: "Demo",
+            id: userId,
+            email: userEmail,
+            firstName: userName,
             lastName: "User",
             profileImageUrl: null,
-            subscriptionTier: "pro",
+            subscriptionTier: userTier,
             tradingStyle: "swing_trade",
             stripeCustomerId: null,
             stripeSubscriptionId: null,
@@ -226,41 +231,52 @@ export async function setupAuth(app: Express, storage: IStorage) {
       return res.json(req.user);
     }
     
-    // SECURITY: Only allow demo user in explicit development mode
-    if (isDevelopmentMode && !shouldSetupAuth) {
-      console.log("DEV MODE: Returning demo user from database");
+    // When auth is not configured, return demo/guest user
+    if (!shouldSetupAuth) {
+      const userId = isDevelopmentMode ? "demo-user-1" : "guest-user-1";
+      console.log(`Returning ${isDevelopmentMode ? 'demo' : 'guest'} user from database`);
       
       // Fetch the latest user data from database
       try {
-        const demoUser = await db.query.users.findFirst({
-          where: eq(users.id, "demo-user-1")
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, userId)
         });
         
-        if (demoUser) {
-          return res.json(demoUser);
+        if (user) {
+          return res.json(user);
         }
         
-        // Fallback if demo user doesn't exist in DB yet
-        const fallbackDemoUser = {
-          id: "demo-user-1",
-          email: "demo@cryptosignal.ai",
-          firstName: "Demo",
+        // Fallback if user doesn't exist in DB yet
+        const fallbackUser = {
+          id: userId,
+          email: isDevelopmentMode ? "demo@cryptosignal.ai" : "guest@cryptosignal.ai",
+          firstName: isDevelopmentMode ? "Demo" : "Guest",
           lastName: "User",
           profileImageUrl: null,
-          subscriptionTier: "pro",
+          subscriptionTier: isDevelopmentMode ? "pro" : "basic",
           tradingStyle: "swing_trade",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        return res.json(fallbackDemoUser);
+        return res.json(fallbackUser);
       } catch (error) {
-        console.error('[Demo User] Error fetching demo user:', error);
+        console.error('[User] Error fetching user:', error);
         return res.status(500).json({ error: 'Failed to fetch user data' });
       }
     }
     
     res.status(401).send("401: Unauthorized");
+  });
+  
+  // Authentication status endpoint
+  app.get("/api/auth/status", (req, res) => {
+    res.json({
+      configured: shouldSetupAuth,
+      authenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+      mode: isDevelopmentMode ? "development" : "production",
+      guestMode: !shouldSetupAuth,
+    });
   });
 }
