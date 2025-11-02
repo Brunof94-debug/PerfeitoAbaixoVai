@@ -59,9 +59,20 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
+      // Allow cached data to be shown even when offline
+      networkMode: 'offlineFirst',
+      // Return cached data on error (including network errors)
+      retry: (failureCount, error) => {
+        // Don't retry if offline
+        if (!navigator.onLine) return false;
+        // Retry up to 3 times for other errors
+        return failureCount < 3;
+      },
     },
     mutations: {
       retry: false,
+      // Don't attempt mutations when offline
+      networkMode: 'online',
     },
   },
 });

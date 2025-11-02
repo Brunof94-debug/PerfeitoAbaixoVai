@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useAuth } from "@/hooks/useAuth";
 import {
   SidebarProvider,
@@ -144,6 +145,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
+          <OfflineBanner />
           <Toaster />
           <Router />
         </TooltipProvider>
