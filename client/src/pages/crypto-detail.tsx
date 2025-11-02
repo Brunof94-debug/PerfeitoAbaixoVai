@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { PriceChange } from "@/components/price-change";
 import { SignalBadge } from "@/components/signal-badge";
+import { CryptoChart } from "@/components/crypto-chart";
+import { TechnicalIndicators } from "@/components/technical-indicators";
 import { Star, TrendingUp, BarChart3, Bell } from "lucide-react";
 import type { Signal } from "@shared/schema";
 
@@ -78,6 +80,19 @@ export default function CryptoDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Charts and Indicators */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <CryptoChart symbol={crypto.symbol} cryptoId={crypto.id} />
+        </div>
+        <div>
+          <TechnicalIndicators 
+            symbol={crypto.symbol} 
+            currentPrice={marketData.current_price?.usd || 0} 
+          />
+        </div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-4">

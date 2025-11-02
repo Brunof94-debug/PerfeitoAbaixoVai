@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TrendingUp, Home, BarChart, Zap, Bell, BarChart3, CreditCard, User } from "lucide-react";
+import { TrendingUp, Home, BarChart, Zap, Bell, BarChart3, CreditCard, Star, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 // Pages
@@ -29,6 +29,7 @@ import Signals from "@/pages/signals";
 import Alerts from "@/pages/alerts";
 import Backtests from "@/pages/backtests";
 import Subscription from "@/pages/subscription";
+import Watchlist from "@/pages/watchlist";
 import CryptoDetail from "@/pages/crypto-detail";
 import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
@@ -36,6 +37,7 @@ import NotFound from "@/pages/not-found";
 const menuItems = [
   { title: "Dashboard", icon: Home, href: "/" },
   { title: "Markets", icon: BarChart, href: "/markets" },
+  { title: "Watchlist", icon: Star, href: "/watchlist" },
   { title: "Signals", icon: Zap, href: "/signals" },
   { title: "Alerts", icon: Bell, href: "/alerts" },
   { title: "Backtests", icon: BarChart3, href: "/backtests" },
@@ -106,6 +108,7 @@ function AuthenticatedRouter() {
             <Switch>
               <Route path="/" component={Dashboard} />
               <Route path="/markets" component={Markets} />
+              <Route path="/watchlist" component={Watchlist} />
               <Route path="/crypto/:id" component={CryptoDetail} />
               <Route path="/signals" component={Signals} />
               <Route path="/alerts" component={Alerts} />
