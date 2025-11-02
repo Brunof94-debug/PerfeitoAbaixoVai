@@ -1,18 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CryptoLogo } from "@/components/crypto-logo";
 import { SignalBadge } from "@/components/signal-badge";
 import { SignalCardSkeleton } from "@/components/loading-skeletons";
-import { Brain, RefreshCw } from "lucide-react";
+import { Brain, RefreshCw, Settings, TrendingUp, Clock, Target, Zap } from "lucide-react";
 import { useState } from "react";
-import { queryClient } from "@/lib/queryClient";
-import type { Signal } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Signal, User } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Signals() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [timeframeFilter, setTimeframeFilter] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -25,6 +29,27 @@ export default function Signals() {
     isFetching 
   } = useQuery<Signal[]>({
     queryKey: ['/api/signals'],
+  });
+  
+  // Mutation to update trading style
+  const updateTradingStyleMutation = useMutation({
+    mutationFn: async (tradingStyle: string) => {
+      return await apiRequest('PATCH', '/api/user/preferences', { tradingStyle });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: "Preferências atualizadas",
+        description: "Seu estilo de trading foi salvo com sucesso. Os próximos sinais serão otimizados para sua estratégia.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível salvar suas preferências. Tente novamente.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Handle manual refresh
@@ -43,8 +68,83 @@ export default function Signals() {
     return true;
   }) || [];
 
+  const tradingStyles = [
+    {
+      id: 'scalping',
+      name: 'Scalping',
+      description: 'Operações rápidas em minutos',
+      timeframes: '1m - 15m',
+      icon: Zap,
+    },
+    {
+      id: 'day_trade',
+      name: 'Day Trade',
+      description: 'Operações intraday sem pernoite',
+      timeframes: '15m - 4h',
+      icon: Clock,
+    },
+    {
+      id: 'swing_trade',
+      name: 'Swing Trade',
+      description: 'Operações de dias a semanas',
+      timeframes: '4h - 3d',
+      icon: TrendingUp,
+    },
+    {
+      id: 'position',
+      name: 'Position',
+      description: 'Investimento de longo prazo',
+      timeframes: '1d - 1w',
+      icon: Target,
+    },
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Trading Style Configuration */}
+      {user && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              <CardTitle>Configurar Estilo de Trading</CardTitle>
+            </div>
+            <CardDescription>
+              Escolha sua estratégia para receber sinais otimizados e personalizados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {tradingStyles.map((style) => {
+                const Icon = style.icon;
+                const isSelected = user.tradingStyle === style.id;
+                return (
+                  <Button
+                    key={style.id}
+                    variant={isSelected ? "default" : "outline"}
+                    className={`h-auto flex-col gap-2 p-4 ${!isSelected && 'hover-elevate'}`}
+                    onClick={() => updateTradingStyleMutation.mutate(style.id)}
+                    disabled={updateTradingStyleMutation.isPending}
+                    data-testid={`button-trading-style-${style.id}`}
+                  >
+                    <Icon className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-semibold">{style.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {style.description}
+                      </div>
+                      <div className="text-xs font-mono mt-2">
+                        {style.timeframes}
+                      </div>
+                    </div>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Trading Signals</h1>
@@ -152,16 +252,16 @@ export default function Signals() {
                       <div>
                         <span className="text-muted-foreground">Generated:</span>
                         <span className="ml-2">
-                          {formatDistanceToNow(new Date(signal.createdAt), { addSuffix: true })}
+                          {signal.createdAt ? formatDistanceToNow(new Date(signal.createdAt), { addSuffix: true }) : 'Unknown'}
                         </span>
                       </div>
                     </div>
 
-                    {signal.indicators && (
+                    {signal.indicators && typeof signal.indicators === 'object' && (
                       <div className="mt-4 pt-4 border-t">
                         <p className="text-xs font-medium text-muted-foreground mb-2">Technical Indicators</p>
                         <div className="flex flex-wrap gap-3 text-xs">
-                          {Object.entries(signal.indicators as any).map(([key, value]) => (
+                          {Object.entries(signal.indicators).map(([key, value]) => (
                             <div key={key} className="flex items-center gap-1">
                               <span className="text-muted-foreground uppercase">{key}:</span>
                               <span className="font-mono font-semibold">

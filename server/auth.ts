@@ -63,6 +63,7 @@ export async function setupAuth(app: Express, storage: IStorage) {
                 lastName: userinfo.family_name || user.lastName,
                 profileImageUrl: userinfo.picture || user.profileImageUrl,
                 subscriptionTier: user.subscriptionTier,
+                tradingStyle: user.tradingStyle,
                 stripeCustomerId: user.stripeCustomerId,
                 stripeSubscriptionId: user.stripeSubscriptionId,
                 createdAt: user.createdAt,
@@ -166,6 +167,7 @@ export async function setupAuth(app: Express, storage: IStorage) {
           lastName: "User",
           profileImageUrl: null,
           subscriptionTier: "pro" as const,
+          tradingStyle: "swing_trade" as const,
           stripeCustomerId: null,
           stripeSubscriptionId: null,
         };

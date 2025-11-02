@@ -50,7 +50,7 @@ function calculateIndicators(prices: number[]) {
 }
 
 // Helper: Generate AI trading signal using OpenAI
-async function generateAISignal(crypto: any) {
+async function generateAISignal(crypto: any, tradingStyle: string = 'swing_trade') {
   try {
     // Get price history (mock data for MVP - in production, fetch real OHLCV data)
     const mockPrices = Array.from({ length: 14 }, (_, i) => {
@@ -60,7 +60,33 @@ async function generateAISignal(crypto: any) {
     
     const indicators = calculateIndicators(mockPrices);
     
-    const prompt = `You are a professional cryptocurrency trading analyst. Analyze the following data and provide a trading signal.
+    // Configure analysis based on trading style
+    const styleConfig: Record<string, { timeframes: string[], focus: string, description: string }> = {
+      scalping: {
+        timeframes: ['1m', '5m', '15m'],
+        focus: 'very short-term price movements and quick profits',
+        description: 'Scalping strategy - looking for quick entries/exits within minutes'
+      },
+      day_trade: {
+        timeframes: ['15m', '1h', '4h'],
+        focus: 'intraday price movements and closing positions before end of day',
+        description: 'Day trading strategy - positions held for hours, not overnight'
+      },
+      swing_trade: {
+        timeframes: ['4h', '1d', '3d'],
+        focus: 'multi-day price swings and medium-term trends',
+        description: 'Swing trading strategy - positions held for days to weeks'
+      },
+      position: {
+        timeframes: ['1d', '1w'],
+        focus: 'long-term trends and fundamental value',
+        description: 'Position trading strategy - long-term holds based on fundamentals'
+      }
+    };
+    
+    const config = styleConfig[tradingStyle] || styleConfig.swing_trade;
+    
+    const prompt = `You are a professional cryptocurrency trading analyst specialized in ${config.description}.
 
 Cryptocurrency: ${crypto.name} (${crypto.symbol.toUpperCase()})
 Current Price: $${crypto.current_price}
@@ -74,15 +100,18 @@ Technical Indicators:
 - SMA: $${indicators.sma}
 - Momentum: ${indicators.momentum}
 
-Provide a trading signal in exactly this JSON format (no markdown, just valid JSON):
+Trading Style: ${tradingStyle.replace('_', ' ').toUpperCase()}
+Analysis Focus: ${config.focus}
+
+Provide a trading signal optimized for ${tradingStyle.replace('_', ' ')} in exactly this JSON format (no markdown, just valid JSON):
 {
   "signal": "buy" | "sell" | "watch",
   "confidence": <number 0-100>,
-  "rationale": "<brief 2-3 sentence analysis explaining the signal>",
-  "timeframe": "1h" | "4h" | "1d"
+  "rationale": "<brief 2-3 sentence analysis explaining the signal for ${tradingStyle.replace('_', ' ')} strategy>",
+  "timeframe": "${config.timeframes[0]}" | "${config.timeframes[1]}" | "${config.timeframes[2] || config.timeframes[1]}"
 }
 
-Be concise and actionable. Consider price action, momentum, and technical indicators.`;
+Be concise and actionable. Consider price action, momentum, and technical indicators appropriate for ${config.description}.`;
 
     const completion = await pRetry(
       async () => {
@@ -310,6 +339,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/signals/generate/:cryptoId", async (req, res) => {
     try {
       const crypto = await fetchSingleCryptoCached(req.params.cryptoId);
+      
+      // Get user's trading style if authenticated, otherwise use default
+      const tradingStyle = req.user?.tradingStyle || 'swing_trade';
+      
       const signalData = await generateAISignal({
         id: crypto.id,
         symbol: crypto.symbol,
@@ -319,13 +352,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price_change_percentage_7d_in_currency: crypto.market_data.price_change_percentage_7d,
         market_cap: crypto.market_data.market_cap.usd,
         total_volume: crypto.market_data.total_volume.usd,
-      });
+      }, tradingStyle);
       
       const signal = await storage.createSignal(signalData);
       res.json(signal);
     } catch (error) {
       console.error('Error generating signal:', error);
       res.status(500).json({ error: 'Failed to generate trading signal' });
+    }
+  });
+  
+  // Update user's trading style preference
+  app.patch("/api/user/preferences", async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+      const { tradingStyle } = req.body;
+      
+      // Validate trading style
+      const validStyles = ['scalping', 'day_trade', 'swing_trade', 'position'];
+      if (!tradingStyle || !validStyles.includes(tradingStyle)) {
+        return res.status(400).json({ 
+          error: 'Invalid trading style. Must be one of: scalping, day_trade, swing_trade, position' 
+        });
+      }
+      
+      // Update user's trading style
+      await storage.updateUserTradingStyle(req.user.id, tradingStyle);
+      
+      // Return updated user
+      const updatedUser = await storage.getUser(req.user.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      res.status(500).json({ error: 'Failed to update preferences' });
     }
   });
 

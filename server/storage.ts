@@ -24,6 +24,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserSubscription(userId: string, tier: string, stripeCustomerId?: string, stripeSubscriptionId?: string): Promise<void>;
+  updateUserTradingStyle(userId: string, tradingStyle: string): Promise<void>;
 
   // Watchlist
   getWatchlistByUser(userId: string): Promise<Watchlist[]>;
@@ -92,6 +93,16 @@ export class DatabaseStorage implements IStorage {
         subscriptionTier: tier,
         stripeCustomerId,
         stripeSubscriptionId,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+  
+  async updateUserTradingStyle(userId: string, tradingStyle: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        tradingStyle,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
