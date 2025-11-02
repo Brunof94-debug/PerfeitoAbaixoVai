@@ -109,7 +109,8 @@ async function fetchHistoricalData(cryptoId: string, startDate: Date, endDate: D
   }
   
   // Convert to OHLC
-  for (const [date, dayPrices] of dayMap) {
+  for (const date of Array.from(dayMap.keys())) {
+    const dayPrices = dayMap.get(date)!;
     if (dayPrices.length === 0) continue;
     
     ohlc.push({
@@ -321,8 +322,8 @@ export async function runBacktest(params: InsertBacktest): Promise<BacktestResul
   // Execute strategy
   const trades = executeStrategy(ohlc, params.strategyName);
   
-  // Calculate metrics
-  const results = calculateMetrics(trades, params.initialCapital);
+  // Calculate metrics (use default initial capital of 10000)
+  const results = calculateMetrics(trades, 10000);
   
   return results;
 }
