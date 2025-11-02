@@ -23,7 +23,7 @@ export function TechnicalIndicators({ symbol, currentPrice, cryptoId, timeframe 
   const days = timeframeToDays[timeframe];
   
   // Fetch historical OHLC data for calculations
-  const { data: ohlcData, isLoading, isError } = useQuery<any[]>({
+  const { data: ohlcData, isLoading, isError, isFetching } = useQuery<any[]>({
     queryKey: [`/api/cryptos/${cryptoId}/ohlc?days=${days}`],
     enabled: !!cryptoId,
     retry: 1,
@@ -139,7 +139,14 @@ export function TechnicalIndicators({ symbol, currentPrice, cryptoId, timeframe 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Technical Indicators</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Technical Indicators</CardTitle>
+          {isFetching && !isLoading && (
+            <Badge variant="outline" className="text-xs" data-testid="badge-indicators-refreshing">
+              Updating...
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* RSI */}
