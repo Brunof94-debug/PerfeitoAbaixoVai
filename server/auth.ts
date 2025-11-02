@@ -5,7 +5,7 @@ import createMemoryStore from "memorystore";
 import passport from "passport";
 import { Issuer, Strategy, type UserinfoResponse } from "openid-client";
 import type { IStorage } from "./storage";
-import type { User } from "@shared/schema";
+import type { User as DbUser } from "@shared/schema";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -14,7 +14,7 @@ const MemoryStore = createMemoryStore(session);
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User extends DbUser {}
   }
 }
 
@@ -37,7 +37,7 @@ export async function setupAuth(app: Express, storage: IStorage) {
 
       passport.use(
         "oidc",
-        new Strategy({ client }, async (tokenSet, userinfo: UserinfoResponse, done) => {
+        new Strategy({ client }, async (tokenSet: any, userinfo: UserinfoResponse, done: any) => {
           try {
             const email = userinfo.email;
             if (!email) {

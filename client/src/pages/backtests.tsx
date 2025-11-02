@@ -51,13 +51,9 @@ export default function Backtests() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('[Backtest Mutation] Calling API with:', data);
-      const response = await apiRequest("POST", "/api/backtests", data);
-      console.log('[Backtest Mutation] API response:', response);
-      return response;
+      return await apiRequest("POST", "/api/backtests", data);
     },
     onSuccess: () => {
-      console.log('[Backtest Mutation] Success!');
       queryClient.invalidateQueries({ queryKey: ['/api/backtests'] });
       setIsDialogOpen(false);
       const newDates = getDefaultDates();
@@ -65,7 +61,6 @@ export default function Backtests() {
       toast({ title: "Backtest started", description: "Results will be ready in a few moments" });
     },
     onError: (error: any) => {
-      console.error('[Backtest Mutation] Error:', error);
       toast({ title: "Failed to start backtest", description: error.message || "Unknown error", variant: "destructive" });
     },
   });
@@ -73,24 +68,19 @@ export default function Backtests() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('[Backtest Submit] Form data:', formData);
-    
     // Validation
     if (!formData.cryptoId) {
-      console.error('[Backtest Submit] No crypto selected');
       toast({ title: "Please select a cryptocurrency", variant: "destructive" });
       return;
     }
     
     if (!formData.startDate || !formData.endDate) {
-      console.error('[Backtest Submit] Missing dates');
       toast({ title: "Please select start and end dates", variant: "destructive" });
       return;
     }
     
     const selectedCrypto = cryptos?.find(c => c.id === formData.cryptoId);
     if (!selectedCrypto) {
-      console.error('[Backtest Submit] Crypto not found in list');
       toast({ title: "Selected cryptocurrency not found", variant: "destructive" });
       return;
     }
@@ -115,7 +105,6 @@ export default function Backtests() {
       results: {},
     };
     
-    console.log('[Backtest Submit] Sending payload:', payload);
     createMutation.mutate(payload);
   };
 
@@ -257,30 +246,30 @@ export default function Backtests() {
                       </Badge>
                     </div>
 
-                    {backtest.status === 'completed' && backtest.results && (
+                    {backtest.status === 'completed' && backtest.results && typeof backtest.results === 'object' && (
                       <div className="grid grid-cols-4 gap-4 mb-4">
                         <div>
                           <p className="text-xs text-muted-foreground">Win Rate</p>
                           <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
-                            {((backtest.results as any).winRate * 100).toFixed(1)}%
+                            {(((backtest.results as any).winRate ?? 0) * 100).toFixed(1)}%
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Profit Factor</p>
                           <p className="text-lg font-bold font-mono">
-                            {(backtest.results as any).profitFactor?.toFixed(2)}
+                            {((backtest.results as any).profitFactor ?? 0).toFixed(2)}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Max Drawdown</p>
                           <p className="text-lg font-bold font-mono text-red-600 dark:text-red-400">
-                            {((backtest.results as any).maxDrawdown * 100).toFixed(1)}%
+                            {(((backtest.results as any).maxDrawdown ?? 0) * 100).toFixed(1)}%
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
                           <p className="text-lg font-bold font-mono">
-                            {(backtest.results as any).sharpe?.toFixed(2)}
+                            {((backtest.results as any).sharpe ?? 0).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -288,7 +277,7 @@ export default function Backtests() {
 
                     <p className="text-sm text-muted-foreground">
                       Started {formatDistanceToNow(new Date(backtest.createdAt), { addSuffix: true })}
-                      {backtest.completedAt && (
+                      {backtest.completedAt && backtest.completedAt !== null && (
                         <> • Completed {formatDistanceToNow(new Date(backtest.completedAt), { addSuffix: true })}</>
                       )}
                     </p>
