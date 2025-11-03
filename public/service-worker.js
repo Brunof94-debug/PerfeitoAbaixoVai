@@ -1,5 +1,6 @@
-const APP_CACHE = 'app-shell-v3';
-const RUNTIME_CACHE = 'runtime-v3';
+// ↑↑ aumente a versão sempre que mudar assets para forçar atualização do SW
+const APP_CACHE = 'app-shell-v4';
+const RUNTIME_CACHE = 'runtime-v4';
 const OFFLINE_URL = '/offline.html';
 
 const APP_SHELL = [
@@ -11,30 +12,31 @@ const APP_SHELL = [
   '/icons/icon-512.png'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(APP_CACHE).then(c => c.addAll(APP_SHELL)));
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(APP_CACHE).then((cache) => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(k => (k !== APP_CACHE && k !== RUNTIME_CACHE) ? caches.delete(k) : null)
-    ))
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k !== APP_CACHE && k !== RUNTIME_CACHE) ? caches.delete(k) : null))
+    )
   );
   self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  const { request } = e;
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
 
+  // Navegação (páginas) → online-first com fallback para cache/offline
   if (request.mode === 'navigate') {
-    e.respondWith((async () => {
+    event.respondWith((async () => {
       try {
-        const fresh = await fetch(request);
+        const network = await fetch(request);
         const runtime = await caches.open(RUNTIME_CACHE);
-        runtime.put(request, fresh.clone());
-        return fresh;
+        runtime.put(request, network.clone());
+        return network;
       } catch {
         const cached = await caches.match(request);
         return cached || caches.match(OFFLINE_URL);
@@ -43,10 +45,11 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  if (['style','script','image','font'].includes(request.destination)) {
-    e.respondWith((async () => {
+  // Assets estáticos → cache-first com atualização em segundo plano
+  if (['style', 'script', 'image', 'font'].includes(request.destination)) {
+    event.respondWith((async () => {
       const cached = await caches.match(request);
-      const fetchPromise = fetch(request).then(async res => {
+      const fetchPromise = fetch(request).then(async (res) => {
         const runtime = await caches.open(RUNTIME_CACHE);
         runtime.put(request, res.clone());
         return res;
