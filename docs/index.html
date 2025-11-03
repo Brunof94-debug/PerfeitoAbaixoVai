@@ -1,6 +1,3 @@
-Coloque este conteúdo em `docs/index.html` no GitHub:
-
-```html
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -32,12 +29,9 @@ Coloque este conteúdo em `docs/index.html` no GitHub:
     <p style="margin-top:12px;font-size:14px;opacity:.75">Dica (Android/Chrome): abra o menu ⋮ e toque em <b>Adicionar à tela inicial</b> caso o botão acima não apareça.</p>
   </div>
   <script>
-    // registra o service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
-
-    // A2HS
     let deferredPrompt;
     const installBtn = document.getElementById('installBtn');
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -55,4 +49,3 @@ Coloque este conteúdo em `docs/index.html` no GitHub:
   </script>
 </body>
 </html>
-```
