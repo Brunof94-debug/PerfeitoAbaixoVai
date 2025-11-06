@@ -4,8 +4,8 @@ import type { Config } from "tailwindcss";
 export default {
   content: [
     "./client/index.html",
-    "./client/src/**/*.{ts,tsx,js,jsx,html}",
+    "./client/src/**/*.{ts,tsx,js,jsx,html}"
   ],
   theme: { extend: {} },
-  plugins: [],
+  plugins: []
 } satisfies Config;
