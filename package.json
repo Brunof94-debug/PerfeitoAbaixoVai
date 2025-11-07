@@ -40,17 +40,18 @@
     "@tanstack/react-query": "^5.59.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "lightweight-charts": "^4.2.0",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
+    "react-day-picker": "^9.0.7",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.53.0",
     "react-router-dom": "^6.28.0",
-    "react-day-picker": "^9.0.7",
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.5.4",
+    "technicalindicators": "^3.1.0",
     "wouter": "^3.3.3",
-    "zod": "^3.23.8",
-    "lightweight-charts": "^4.2.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
