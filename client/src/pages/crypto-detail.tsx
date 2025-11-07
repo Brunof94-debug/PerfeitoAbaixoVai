@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import PriceChange from "@/components/price-change";
+import { PriceChange } from "@/components/price-change"; // <— AGORA NOMEADO
 import { SignalBadge } from "@/components/signal-badge";
 import TechnicalIndicators from "@/components/technical-indicators";
-import CryptoChart from "@/components/crypto-chart"; // << IMPORT DEFAULT (sem chaves)
+import CryptoChart from "@/components/crypto-chart"; // default
 import { Star, TrendingUp, BarChart3, Bell, RefreshCw } from "lucide-react";
 
 export default function CryptoDetail() {
