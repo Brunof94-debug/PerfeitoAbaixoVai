@@ -1,78 +1,49 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import pLimit from "p-limit";
+// client/src/lib/queryClient.ts
+import { QueryClient } from "@tanstack/react-query";
 
-// Limit concurrent API requests to prevent overwhelming the server
-const requestLimit = pLimit(5); // Max 5 concurrent requests
-
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  // Throttle requests using p-limit
-  return requestLimit(async () => {
-    const res = await fetch(url, {
-      method,
-      headers: data ? { "Content-Type": "application/json" } : {},
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-    });
-
-    await throwIfResNotOk(res);
-    return res;
-  });
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    // Throttle requests using p-limit
-    return requestLimit(async () => {
-      const res = await fetch(queryKey.join("/") as string, {
-        credentials: "include",
-      });
-
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
-
-      await throwIfResNotOk(res);
-      return await res.json();
-    });
-  };
+/**
+ * QueryClient global, com defaults seguros para app PWA:
+ * - evita refetch ao focar janela
+ * - backoff exponencial leve
+ * - não tenta quando offline
+ * - sem 'p-limit' (evitamos dependência)
+ */
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      // Mantém dados "frescos" por 30s
+      staleTime: 30_000,
+      // Tempo de coleta de cache (garbage collect)
+      gcTime: 5 * 60 * 1000,
+      // Evita refetch ao focar a aba
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-      // Allow cached data to be shown even when offline
-      networkMode: 'offlineFirst',
-      // Return cached data on error (including network errors)
-      retry: (failureCount, error) => {
-        // Don't retry if offline
-        if (!navigator.onLine) return false;
-        // Retry up to 3 times for other errors
-        return failureCount < 3;
+      // Refaz ao reconectar
+      refetchOnReconnect: true,
+      // Modo online (queries não rodam quando offline)
+      networkMode: "online",
+      // NÃO duplicar a chave 'retry' — definimos apenas uma vez
+      retry(failureCount, _error) {
+        // Se estiver offline, não tente
+        if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+        // Até 2 tentativas no total (1 retry)
+        return failureCount < 2;
+      },
+      // Pequeno backoff exponencial com teto
+      retryDelay(attemptIndex) {
+        const base = 1000; // 1s
+        const delay = base * Math.pow(2, attemptIndex); // 1s, 2s, 4s...
+        return Math.min(delay, 10_000); // teto 10s
       },
     },
     mutations: {
-      retry: false,
-      // Don't attempt mutations when offline
-      networkMode: 'online',
+      networkMode: "online",
+      retry(failureCount, _error) {
+        if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+        // Mutations são mais delicadas: 1 retry no máx.
+        return failureCount < 2;
+      },
+      retryDelay: 1500,
     },
   },
 });
